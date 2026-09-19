@@ -38,8 +38,16 @@ class Workspace:
         # /.pi anchors at the root of every worktree as well: the symlink belongs to the agent, not the project
         missing = [line for line in (".factory/", "/.pi") if line not in exclude.read_text()]
         exclude.write_text(exclude.read_text() + "".join(f"{line}\n" for line in missing))
+        self.forget_worktrees()
         self.with_tools(self.workdir)  # the tester works in the project itself
         self.agent_dir(Role.planner)
+
+    def forget_worktrees(self) -> None:
+        # what a run before this one left under .factory/work: keys repeat per run, a leftover would block the branch
+        for line in git(self.workdir, "worktree", "list", "--porcelain").stdout.splitlines():
+            if line.startswith("worktree ") and line.removeprefix("worktree ").startswith(str(self.factory / "work")):
+                git(self.workdir, "worktree", "remove", "--force", line.removeprefix("worktree "), check=False)
+        git(self.workdir, "worktree", "prune")
 
     def agent_dir(self, name: str) -> Path:
         path = self.factory / name
@@ -58,6 +66,12 @@ class Workspace:
         if not link.exists():
             link.symlink_to(ROOT / ".pi")
         return path
+
+    def drop(self, key: str) -> None:
+        # a canceled task: its worktree goes, nothing of it reaches the project
+        path = self.factory / "work" / key
+        if path.exists():
+            git(self.workdir, "worktree", "remove", "--force", str(path))
 
     def merge(self, key: str, title: str) -> str | None:
         # the board commits and merges for the worker; the conflict comes back as text, the worktree always goes

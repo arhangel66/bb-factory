@@ -57,3 +57,22 @@ def test_conflicting_work_comes_back_as_text(prepared: Workspace) -> None:
     assert (prepared.workdir / "app.py").read_text() == "print('one')\n"  # the project keeps the merged work
     assert subprocess.run(["git", "-C", str(prepared.workdir), "status", "--porcelain"],
                           capture_output=True, text=True).stdout == ""
+
+
+def test_prepare_forgets_the_worktrees_of_a_run_before(prepared: Workspace) -> None:
+    work(prepared, "FAB-1", "app.py", "print('one')\n")
+
+    Workspace(prepared.workdir).prepare()
+
+    assert not (prepared.factory / "work/FAB-1").exists()
+    assert git(prepared.workdir, "worktree", "list").stdout.count("\n") == 1
+    work(prepared, "FAB-1", "app.py", "print('again')\n")  # the key is free for the new run
+
+
+def test_drop_throws_the_work_away(prepared: Workspace) -> None:
+    work(prepared, "FAB-1", "app.py", "print('one')\n")
+
+    prepared.drop("FAB-1")
+
+    assert not (prepared.factory / "work/FAB-1").exists()
+    assert not (prepared.workdir / "app.py").exists()

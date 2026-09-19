@@ -1,40 +1,55 @@
-// Tools for the pi threads of the factory: thin wrappers over `bb tasks`.
-import { appendFileSync, readFileSync, realpathSync } from "node:fs";
+// Tools for the pi threads of the factory: they read the run's tasks.json and append intents the board folds.
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 
-const PROJECT = "FAB";
 // an agent runs in a directory of its own, where .pi is a symlink back to the factory: that is where state/ lives
 const FACTORY = join(realpathSync(".pi"), "..");
-// factory/core/board.py writes the run's first task number here; the board tool hides tasks of earlier runs
-const runStart = (): number => JSON.parse(readFileSync(join(FACTORY, "state/run.json"), "utf8")).number;
-const MESSAGES = join(FACTORY, "state/messages.jsonl"); // the planner's report goes here; factory/core/board.py ends the run on it
+// the run: state/current is a symlink the board points at the run's directory (factory/state.py)
+const RUN = join(FACTORY, "state/current");
+const TASKS = join(RUN, "tasks.json"); // the board's view of the tasks; factory/core/tracker.py is its only writer
+const INTENTS = join(RUN, "intents.jsonl"); // what the tools ask for; the board folds it every tick
+const MESSAGES = join(RUN, "messages.jsonl"); // the post; the planner's report goes here and ends the run
+const KEYS = join(RUN, "keys"); // one directory per key handed out: mkdir is the atomic counter
 // {role: [tool]}, factory/roles/__init__.py writes it at the start of a run: which of the tools below each role may call
 const toolsByRole = (): Record<string, string[]> => JSON.parse(readFileSync(join(FACTORY, "state/roles.json"), "utf8"));
 
 // the thread title is "<prompt> [<task>] <model>": the first word is the role, a lead's second word is its epic
 let role = "";
-let epic = { key: "", id: "" }; // a lead's floor: its tasks get this parent, its board shows only them
+let epic = ""; // a lead's floor: its tasks get this parent, its board shows only them
+let thread = "";
 
 export default function (pi: ExtensionAPI) {
   pi.on("session_start", async () => {
-    const id = process.env.BB_THREAD_ID;
-    if (!id) return;
-    const r = await pi.exec("bb", ["thread", "show", id, "--json"], { timeout: 30000 });
+    thread = process.env.BB_THREAD_ID ?? "";
+    if (!thread) return;
+    const r = await pi.exec("bb", ["thread", "show", thread, "--json"], { timeout: 30000 });
     const words: string[] = JSON.parse(r.stdout).thread?.title?.split(" ") ?? [];
     role = words[0];
     const tools = toolsByRole()[role];
     if (tools) pi.setActiveTools(tools);
-    if (role === "lead") epic = { key: words[1], id: (await bb(["show", words[1]])).task.id };
+    if (role === "lead") epic = words[1];
   });
 
-  async function bb(args: string[], signal?: AbortSignal): Promise<any> {
-    const r = await pi.exec("bb", ["tasks", ...args, "--json"], { signal, timeout: 30000 });
-    if (r.code !== 0) throw new Error(`bb tasks ${args[0]}: ${r.stderr || r.stdout}`);
-    return JSON.parse(r.stdout);
-  }
+  const tasks = (): Record<string, any> => (existsSync(TASKS) ? JSON.parse(readFileSync(TASKS, "utf8")) : {});
+  const intents = (): any[] =>
+    readFileSync(INTENTS, "utf8").split("\n").filter(Boolean).flatMap((line) => {
+      try { return [JSON.parse(line)]; } catch { return []; } // a line another agent is still writing
+    });
+  const intend = (intent: string, fields: Record<string, unknown>) =>
+    appendFileSync(INTENTS, JSON.stringify({ at: new Date().toISOString(), thread, intent, ...fields }) + "\n");
+  const known = (key: string) => existsSync(join(KEYS, key.replace(/^FAB-/, ""))); // handed out in this run
+  const allocateKey = (): string => {
+    for (let n = readdirSync(KEYS).length + 1; ; n++) {
+      try { mkdirSync(join(KEYS, String(n))); return `FAB-${n}`; }
+      catch (e: any) { if (e.code !== "EEXIST") throw e; }
+    }
+  };
+  const mine = (t: any) => (t.parent ?? null) === (role === "lead" ? epic : null);
+  const line = (t: any) =>
+    `${t.key}  ${t.status}  ${t.priority}  ${t.type}  ${t.title}  [blocked-by: ${(t.blocked_by ?? []).join(", ") || "none"}]`;
   const text = (t: string) => ({ content: [{ type: "text" as const, text: t }], details: {} });
 
   pi.registerTool({
@@ -44,66 +59,70 @@ export default function (pi: ExtensionAPI) {
       "Put a task on the board. type=code goes to a worker, type=test to a tester, type=epic to a lead who " +
       "plans it as sub-tasks and hands the epic back to you (planner only), type=ask to the secretary, who " +
       "asks Mikhail and brings his answer back as the handoff. " +
-      "A task with blocked_by starts only after those tasks are done.",
+      "A task with blocked_by starts only after those tasks are done: create tasks in order and use the keys " +
+      "you got back. A task is never edited once created: to change one, cancel it and create another.",
     parameters: Type.Object({
       type: StringEnum(["code", "test", "epic", "ask"]),
       title: Type.String({ description: "The gist of the task in 4-6 words" }),
       motivation: Type.String({ description: "Why this task exists" }),
       dod: Type.String({ description: "Definition of done: how to check it is complete" }),
       priority: StringEnum(["urgent", "high", "medium", "low"]),
-      blocked_by: Type.Optional(Type.Array(Type.String(), { description: "Task keys like FAB-3" })),
+      blocked_by: Type.Optional(Type.Array(Type.String(), { description: "Keys of tasks you created, like FAB-3" })),
     }),
-    async execute(_id, p, signal) {
+    async execute(_id, p) {
       if (role === "lead" && p.type === "epic") throw new Error("a lead cannot create epics; split into code and test tasks");
-      const description =
-        `## Motivation\n${p.motivation}\n\n## Definition of done\n${p.dod}\n\n` +
-        `blocked-by: ${(p.blocked_by ?? []).join(", ") || "none"}`;
-      const args = ["create", "--project", PROJECT, "--title", p.title, "--description", description,
-                    "--priority", p.priority, "--label", p.type];
-      if (role === "lead") args.push("--parent", epic.key);
-      const { task } = await bb(args, signal);
-      await bb(["update", task.key, "--status", "todo"], signal); // create lands in backlog
-      return text(`${task.key} created`);
+      const unknown = (p.blocked_by ?? []).filter((k) => !known(k));
+      if (unknown.length) throw new Error(`${unknown.join(", ")}: no such task in this run; create tasks in order and use the keys you got back`);
+      const key = allocateKey();
+      intend("create", {
+        key, type: p.type, title: p.title, priority: p.priority, blocked_by: p.blocked_by ?? [],
+        description: `## Motivation\n${p.motivation}\n\n## Definition of done\n${p.dod}`,
+        parent: role === "lead" ? epic : null,
+      });
+      return text(`${key} created; it is on the board within a few seconds`);
     },
   });
 
   pi.registerTool({
-    name: "update_task",
-    label: "Update task",
+    name: "cancel_task",
+    label: "Cancel task",
     description:
-      "Change a task. status=todo sends it back to a worker (rewrite the description first: what was " +
-      "wrong, what to do now), status=canceled drops it. " +
-      "description replaces the whole text; keep the `## Motivation`, `## Definition of done` " +
-      "and `blocked-by:` parts.",
-    parameters: Type.Object({
-      key: Type.String(),
-      status: Type.Optional(StringEnum(["todo", "canceled"])),
-      priority: Type.Optional(StringEnum(["urgent", "high", "medium", "low"])),
-      description: Type.Optional(Type.String()),
-    }),
-    async execute(_id, p, signal) {
-      const args = ["update", p.key];
-      if (p.status) args.push("--status", p.status);
-      if (p.priority) args.push("--priority", p.priority);
-      if (p.description) args.push("--description", p.description);
-      await bb(args, signal);
-      return text(`${p.key} updated`);
+      "Drop a task that is no longer needed. One already in progress finishes on its own, its work is discarded " +
+      "and its handoff reaches nobody. To change a task, cancel it and create another.",
+    parameters: Type.Object({ key: Type.String(), why: Type.String({ description: "One line, for the log" }) }),
+    async execute(_id, p) {
+      const t = tasks()[p.key];
+      if (!t && !known(p.key)) throw new Error(`${p.key}: no such task in this run`);
+      if (t && t.status !== "todo" && t.status !== "in_progress") return text(`${p.key} is ${t.status} already, nothing to cancel`);
+      intend("cancel", { key: p.key, why: p.why });
+      return text(`${p.key} canceled`);
+    },
+  });
+
+  pi.registerTool({
+    name: "set_priority",
+    label: "Set priority",
+    description: "Move a waiting task up or down. A task already in progress keeps going whatever its priority.",
+    parameters: Type.Object({ key: Type.String(), priority: StringEnum(["urgent", "high", "medium", "low"]) }),
+    async execute(_id, p) {
+      const t = tasks()[p.key];
+      if (!t && !known(p.key)) throw new Error(`${p.key}: no such task in this run`);
+      if (t && t.status !== "todo") return text(`${p.key} is ${t.status}: the priority of a task matters only while it waits`);
+      intend("priority", { key: p.key, priority: p.priority });
+      return text(`${p.key} is ${p.priority}`);
     },
   });
 
   pi.registerTool({
     name: "board",
     label: "Board",
-    description: "Your tasks with status, priority, type and blockers.",
+    description: "Your tasks with status, priority, type and blockers. A task created seconds ago shows as pending.",
     parameters: Type.Object({}),
-    async execute(_id, _p, signal) {
-      const { tasks } = await bb(["list", "--project", PROJECT], signal);
-      const start = runStart();
-      const mine = (t: any) => role === "lead" ? t.parentTaskId === epic.id : t.parentTaskId === null;
-      const lines = tasks.filter((t: any) => t.number >= start && mine(t)).map((t: any) => {
-        const blocked = /blocked-by: (.+)/.exec(t.description ?? "")?.[1] ?? "none";
-        return `${t.key}  ${t.status}  ${t.priority}  ${t.labels.join(",")}  ${t.title}  [blocked-by: ${blocked}]`;
-      });
+    async execute() {
+      const all = tasks();
+      const pending = intents().filter((i) => i.intent === "create" && !all[i.key] && mine(i))
+        .map((i) => ({ ...i, status: "todo (pending)" }));
+      const lines = [...Object.values(all).filter(mine), ...pending].map(line);
       return text(lines.join("\n") || "board is empty");
     },
   });
@@ -111,12 +130,15 @@ export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "show_task",
     label: "Show task",
-    description: "Full description and comments (handoffs) of one task.",
+    description: "Full description and the handoff of one task.",
     parameters: Type.Object({ key: Type.String() }),
-    async execute(_id, p, signal) {
-      const { task, comments } = await bb(["show", p.key], signal);
-      const log = comments.map((c: any) => `--- ${c.authorName} at ${c.createdAt}\n${c.body}`).join("\n");
-      return text(`${task.key} ${task.status} ${task.priority}: ${task.title}\n\n${task.description}\n\n${log}`);
+    async execute(_id, p) {
+      const all = tasks();
+      const t = all[p.key] ?? intents().find((i) => i.intent === "create" && i.key === p.key);
+      if (!t) throw new Error(`${p.key}: no such task in this run`);
+      const status = all[p.key] ? t.status : "todo (pending)";
+      const log = (t.handoffs ?? []).map((h: any) => `--- handoff (${h.outcome}) at ${h.at}: ${h.summary}\n${h.text}`).join("\n");
+      return text(`${t.key} ${status} ${t.priority}: ${t.title}\nblocked-by: ${(t.blocked_by ?? []).join(", ") || "none"}\n\n${t.description}\n\n${log}`);
     },
   });
 
@@ -134,9 +156,9 @@ export default function (pi: ExtensionAPI) {
       summary: Type.String({ description: "The result in 4-6 words" }),
       text: Type.String({ description: "The full handoff" }),
     }),
-    async execute(_id, p, signal) {
-      await bb(["comment", p.key, "--body", `handoff (${p.outcome}): ${p.summary}\n\n${p.text}`], signal);
-      await bb(["update", p.key, "--status", "done"], signal);
+    async execute(_id, p) {
+      if (!tasks()[p.key]) throw new Error(`${p.key}: no such task in this run`);
+      intend("handoff", { key: p.key, outcome: p.outcome, summary: p.summary, text: p.text });
       return text(`${p.key} handed off`);
     },
   });

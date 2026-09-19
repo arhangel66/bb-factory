@@ -3,16 +3,27 @@
 ## A run
 
 `factory/construct.py` wires the services and starts a `Board` with a goal and a working directory.
-The board spawns the planner and the secretary as bb threads, then ticks every 10 seconds:
+The board makes a run directory under `state/runs/`, spawns the planner and the secretary as bb threads,
+then ticks every 10 seconds:
 
-1. **deliver** — messages between Mikhail's Telegram and the threads (`state/messages.jsonl` is the queue)
-2. **forward handoffs** — a `done` task's handoff wakes whoever planned it (the lead of its epic, else the planner);
-   a worker's worktree is merged into the project first, a conflict sends the task back to `todo`
-3. **dispatch** — `todo` tasks whose blockers are done go to an agent by label, urgent first, while a slot is free
-4. **heartbeat** — the planner is woken after five quiet minutes
+1. **fold** — the intents the agents appended (`intents.jsonl`) become tasks (`Tracker`, the only writer of
+   `tasks.json`): a create or a cancel is noted, a handoff brings the work home — the worker's worktree is
+   merged into the project and whoever planned the task is woken (the lead of its epic, else the planner);
+   a conflict cancels the task and makes a copy that takes its place among the blockers and waits for the
+   code tasks in flight; a canceled task's work is dropped
+2. **deliver** — messages between Mikhail's Telegram and the threads (`messages.jsonl` is the queue)
+3. **dispatch** — `todo` tasks whose blockers are done go to an agent by type, urgent first, while a slot is
+   free; the brief carries the task's epic and the handoffs of the tasks it waited on
+4. **review** — every 15 minutes the planner is asked to look at the goal against what was handed off
 5. **liveness** — a thread in `error` is retried a few times, then the run stops
 
-The run ends when the planner has reported and the secretary has passed the report on to Mikhail.
+The goal is reached when the planner has reported and the secretary has passed the report on to Mikhail.
+A lingering board (the default in `construct.py`) keeps the planner and the secretary after that, so
+Mikhail's messages become more work until Ctrl-C; `Board.resume()` re-attaches to the run `state/current`
+points at after its board is gone.
+
+Agents never write a task: a task is created once and never edited, changed by cancel + create. So no agent
+can act on a stale view of the board — see [../decisions/own-tracker.md](../decisions/own-tracker.md).
 
 ## Roles — `factory/roles/`
 
@@ -30,34 +41,42 @@ The run ends when the planner has reported and the secretary has passed the repo
 `Config = dict[Role, AgentConfig]` says who serves each role in a run: `construct.py` has a test config
 (the imitator serves worker, tester and secretary) and a real one.
 
+Every `AgentConfig` names its `Model` and its `Thinking` — no defaults, so `construct.py` alone says who runs
+on what and how long it reasons. `Model` is bb's pi catalog (`bb provider models pi`), `Thinking` is bb's
+`--reasoning-level`: low, medium, high, xhigh, max.
+
 ## Tools
 
 Two kinds, do not confuse them:
 
 - **The agents' tools** — `.pi/extensions/factory.ts`, loaded by pi from `.pi/` in the agent's directory
-  (a symlink back to the factory). `create_task`, `update_task`, `board`, `show_task`, `handoff`,
-  `contact_human`, `tell_planner`, `report`. `TOOLS_BY_ROLE` in `factory/roles/` says which role gets which;
-  the board writes it to `state/roles.json` and the extension reads it when a thread starts.
-- **The board's tools** — `factory/tools/`: `bb.py` (tasks and threads through the bb CLI),
+  (a symlink back to the factory). `create_task`, `cancel_task`, `set_priority`, `board`, `show_task`,
+  `handoff`, `contact_human`, `tell_planner`, `report`. They read `tasks.json` and append to `intents.jsonl`
+  and `messages.jsonl`; none of them changes a task. `TOOLS_BY_ROLE` in `factory/roles/` says which role
+  gets which; the board writes it to `state/roles.json` and the extension reads it when a thread starts.
+- **The board's tools** — `factory/tools/`: `bb.py` (threads through the bb CLI),
   `telegram.py` (the bot chat with Mikhail), `messages.py` (the conversation file).
 
 ## State — `factory/state.py`
 
-Every file under `state/` (gitignored), one line each with its schema and writer. `messages.jsonl` is written
-both by the board and by the agents' tools, in the same form.
+Every file under `state/` (gitignored), one line each with its schema and writer. A run is a directory
+`state/runs/<started>/` — `run.json`, `tasks.json`, `intents.jsonl`, `messages.jsonl`, `events.jsonl`,
+`keys/`, `costs.json` (what every finished thread cost: role, model, thinking, its tasks, seconds, turns,
+items by type and the tokens bb recorded), and `workdir`, a symlink to the project the run worked on, where
+its results are — and `state/current` is a symlink to the newest, the way the agents' tools find it.
 
 ## Workspace — `factory/core/workspace.py`
 
 The run's project is a git repo; `.factory/` inside it holds one directory per agent and one worktree per
 `code` task. Every agent directory links `.pi` back to the factory, and must be under pi's trusted paths.
 
-## Timeline — `factory/core/timeline.py`, `factory/ui/`
+## Timeline — `factory/core/events.py`, `factory/ui/`
 
-The history of a run is rebuilt from bb (status comments and handoffs), the messages file and the threads —
-nothing is tracked separately. `construct.py` writes it to `state/events/` every tick; `factory/ui/serve.py`
-serves the page that replays it. See [../examples/](../examples/index.md) for the event form.
+The board appends an event to the run's `events.jsonl` as things happen: a task created, started, handed
+off or canceled, a message sent, an agent started or stopped. `factory/ui/serve.py` serves the page that
+replays it, live or after. See [../examples/](../examples/index.md) for the event form.
 
 ## One agent alone — `do.py`
 
 `factory/core/solo.py` runs one agent on one task without a board and prints its handoff, its final text and
-what it wrote to Mikhail. Never during a run: the board and the messages file are shared.
+what it wrote to Mikhail. Never during a run: it points `state/current` at a run directory of its own.

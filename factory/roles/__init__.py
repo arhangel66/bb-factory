@@ -50,8 +50,9 @@ LABEL_BY_ROLE = {role: label for label, role in ROLE_BY_LABEL.items()}
 # the tools of .pi/extensions/factory.ts each role may call; anything else pi has is switched off for it
 CODING_TOOLS = ("read", "bash", "edit", "write", "grep", "find", "ls")
 TOOLS_BY_ROLE: dict[Role, tuple[str, ...]] = {
-    Role.planner: ("create_task", "update_task", "board", "show_task", "report"),
-    Role.lead: ("create_task", "update_task", "board", "show_task", "handoff"),
+    # the planner and the leads read the project's docs/, never its code: `read` and `ls`, the prompt says where
+    Role.planner: ("read", "ls", "create_task", "cancel_task", "set_priority", "board", "show_task", "report"),
+    Role.lead: ("read", "ls", "create_task", "cancel_task", "set_priority", "board", "show_task", "handoff"),
     Role.worker: (*CODING_TOOLS, "handoff"),
     Role.tester: (*CODING_TOOLS, "handoff"),
     Role.secretary: ("contact_human", "tell_planner", "handoff"),
@@ -62,7 +63,7 @@ TOOLS_BY_ROLE: dict[Role, tuple[str, ...]] = {
 @dataclass(frozen=True)
 class AgentConfig:
     prompt: Role  # prompts/<prompt>.md; the role the pi extension gates tools by
-    model: Model = Model.gpt_5_6_terra
+    model: Model = Model.gpt_5_6_terra  # no default: a run says out loud who it spends its money on
     thinking: Thinking = Thinking.medium
     mode: Literal["per_task", "shared"] = "per_task"  # shared = one thread for every task (the imitator)
 

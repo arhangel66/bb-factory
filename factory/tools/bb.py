@@ -1,14 +1,13 @@
-"""Thin wrappers over the bb CLI: the tracker (bb tasks) and the agent threads (bb thread)."""
+"""A thin wrapper over the bb CLI: the agent threads (bb thread)."""
 
 import json
 import subprocess
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 from factory.roles import Model, Thinking
-from factory.state import run_info
 
-PROJECT = "FAB"
 BB_PROJECT = "proj_x6sd774izb"
 SECTION = "sec_62zku3gn5a"  # sidebar section "Factory · агенты" that holds every thread of a run
 MAX_RETRIES = 3
@@ -21,31 +20,17 @@ def bb(*args: str, timeout: int = 60) -> dict:
     return json.loads(done.stdout)
 
 
-class Tasks:
-    """Tasks of the current run: everything numbered from the run's start."""
-
-    def next_number(self) -> int:
-        return bb("tasks", "project", "show", PROJECT)["project"]["nextTaskNumber"]
-
-    def all(self) -> list[dict]:
-        start = run_info()["number"]
-        return [t for t in bb("tasks", "list", "--project", PROJECT)["tasks"] if t["number"] >= start]
-
-    def show(self, key: str) -> dict:
-        return bb("tasks", "show", key)  # task, labels, comments, taskThreads, ...
-
-    def handoffs(self, key: str) -> list[dict]:
-        return [c for c in self.show(key)["comments"] if c["body"].startswith("handoff")]
-
-    def set_status(self, key: str, status: str) -> None:
-        bb("tasks", "update", key, "--status", status)
-
-    def attach(self, key: str, thread: str) -> None:
-        bb("tasks", "attach", key, "--thread", thread)
-
-    def reopen(self, key: str, note: str) -> None:
-        description = (self.show(key)["task"]["description"] or "").strip()
-        bb("tasks", "update", key, "--status", "todo", "--description", f"{description}\n\n{note}")
+def usage_from_log(events: list[dict]) -> dict:
+    # what a thread spent, from bb's event log: turns, items by type, the token total of its last usage report
+    tokens = {}
+    for e in events:
+        if e["type"] == "thread/tokenUsage/updated":
+            total = e["data"]["tokenUsage"]["total"]
+            tokens = {"input": total["inputTokens"], "cached_input": total["cachedInputTokens"],
+                      "output": total["outputTokens"], "reasoning": total["reasoningOutputTokens"],
+                      "total": total["totalTokens"]}
+    items = Counter(e["data"]["item"]["type"] for e in events if e["type"] == "item/completed")
+    return {"turns": sum(e["type"] == "turn/completed" for e in events), "items": dict(items), "tokens": tokens}
 
 
 class Threads:
@@ -85,3 +70,9 @@ class Threads:
 
     def archive(self, thread: str) -> None:
         bb("thread", "archive", thread)
+
+    def unarchive(self, thread: str) -> None:
+        bb("thread", "unarchive", thread)
+
+    def usage(self, thread: str) -> dict:
+        return usage_from_log(bb("thread", "log", thread, "--all"))

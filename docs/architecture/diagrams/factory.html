@@ -57,7 +57,7 @@
 
       <svg viewBox="0 0 1000 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="factory-simple-title factory-simple-desc">
         <title id="factory-simple-title">Factory test loop: planner, board, orchestrator, imitator</title>
-        <desc id="factory-simple-desc">The planner writes tasks to the bb tasks board; the orchestrator loop reads the board, dispatches each task to an imitator thread and tells the planner about every handoff the imitator writes back to the board.</desc>
+        <desc id="factory-simple-desc">The planner asks for tasks through intents the board folds; the orchestrator loop reads the board, dispatches each task to an imitator thread and tells the planner about every handoff the imitator writes back to the board.</desc>
         <defs>
           <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
           <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
@@ -107,7 +107,7 @@
         <rect x="88" y="286" width="36" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.40)" stroke-width="0.8"/>
         <text x="106" y="295" fill="rgba(79,93,117,0.8)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">STORE</text>
         <text x="180" y="322" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Board</text>
-        <text x="180" y="338" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">bb tasks · project FAB</text>
+        <text x="180" y="338" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">tasks.json · intents.jsonl</text>
 
         <!-- orchestrator -->
         <rect x="520" y="80" width="200" height="80" rx="6" fill="#f5f5f5"/>
@@ -245,7 +245,7 @@
         <rect x="808" y="246" width="36" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.40)" stroke-width="0.8"/>
         <text x="826" y="255" fill="rgba(79,93,117,0.8)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">STORE</text>
         <text x="880" y="282" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Board</text>
-        <text x="880" y="298" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">bb tasks · code test ask epic</text>
+        <text x="880" y="298" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">tasks.json · code test ask epic</text>
 
         <!-- lead (per epic) -->
         <rect x="440" y="416" width="160" height="80" rx="6" fill="#f5f5f5"/>
@@ -380,7 +380,7 @@
         <rect x="320" y="40" width="160" height="48" rx="6" fill="#f5f5f5"/>
         <rect x="320" y="40" width="160" height="48" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
         <text x="400" y="62" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Board</text>
-        <text x="400" y="76" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">bb tasks</text>
+        <text x="400" y="76" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">tasks.json</text>
 
         <rect x="560" y="40" width="160" height="48" rx="6" fill="#f5f5f5"/>
         <rect x="560" y="40" width="160" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>

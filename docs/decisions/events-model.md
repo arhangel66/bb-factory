@@ -2,6 +2,9 @@
 
 Model: `docs/examples/events-full.jsonl`. Three interactions: task, message, agent.
 
+The event form holds; where the events come from changed in [own-tracker.md](own-tracker.md): the board
+appends them as things happen, nothing is rebuilt from bb any more.
+
 - [x] Orchestrator → board. `factory/board.py`: class `Board` is the loop; the bb tasks wrapper becomes `Tasks`.
   `construct.py`: `Board(config, tasks=Tasks(), threads=Threads()).run(goal)`.
 - [x] No top task. The run is scoped by the project's next task number at start (`state/run.json`),
