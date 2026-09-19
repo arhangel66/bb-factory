@@ -41,6 +41,12 @@ factory wastes its slots and its handoffs. Fixes, in order of what they cost the
       Ctrl-C. `Board.resume()` re-attaches a board to the run `state/current` points at, unarchiving both
 - [x] The planner and the leads read the project's `docs/` (`read`, `ls`; the prompt says where and that
       the code stays unread)
+- [ ] A canceled-by-conflict task reads as a broken dependency to the leads: twice in the Shipyard run a
+      lead canceled and recreated its downstream tasks although the board had already pointed them at the
+      copy. The board line and the wake should say `canceled → redone as FAB-42`; the copy's key belongs on
+      the original (`redone_as`)
+- [ ] The handoff of a canceled task is dropped, findings included: a tester of a task canceled mid-flight
+      found a real bug nobody heard of. A canceled task's handoff should still reach the lead as a note
 - [ ] Files on a handoff (Mikhail): `handoff` takes `files`, the board copies them into the run
       (`state/runs/<run>/files/<key>/`) — the tester's screenshots, a worker's log — the wake names them,
       the task's details in the timeline show images inline and the rest as links
