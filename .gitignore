@@ -1,0 +1,8 @@
+state/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.idea/
+.DS_Store
+untracked/

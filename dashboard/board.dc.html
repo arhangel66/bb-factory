@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; }
+  a { color:#2563eb; text-decoration:none; }
+  a:hover { color:#1d4ed8; }
+  @keyframes livePulse { 0%,100% { opacity:1; } 50% { opacity:.25; } }
+  @keyframes barFlow { from { background-position:0 0; } to { background-position:28px 0; } }
+  @keyframes headPulse { 0%,100% { opacity:1; transform:scaleY(1); } 50% { opacity:.45; transform:scaleY(.7); } }
+  ::-webkit-scrollbar { width:9px; height:9px; }
+  ::-webkit-scrollbar-thumb { background:#d3d8e0; border-radius:9px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+</style>
+</helmet>
+<div style="height:100vh; display:flex; flex-direction:column; background:#f4f6f8; color:#161a20; font-family:'IBM Plex Sans',system-ui,sans-serif; overflow:hidden;">
+
+  <header style="flex:0 0 auto; display:flex; align-items:center; gap:14px; height:54px; padding:0 18px; background:#ffffff; border-bottom:1px solid #e2e6ec;">
+    <span style="font-size:13px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;">Доска планировщика</span>
+    <select value="{{ run }}" onChange="{{ pickRun }}" style="height:28px; padding:0 8px; border-radius:6px; border:1px solid #dfe3ea; background:#fbfcfd; color:#3c4453; font-family:'IBM Plex Mono',monospace; font-size:11px; cursor:pointer;">
+      <sc-for list="{{ runs }}" as="r" hint-placeholder-count="1">
+        <option value="{{ r.name }}">{{ r.label }}</option>
+      </sc-for>
+    </select>
+    <div style="display:flex; gap:14px; margin-left:4px;">
+      <sc-for list="{{ stats }}" as="s" hint-placeholder-count="3">
+        <span style="display:flex; align-items:baseline; gap:5px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8b93a1;">
+          {{ s.label }}<span style="font-size:13px; font-weight:500; color:{{ s.color }};">{{ s.value }}</span>
+        </span>
+      </sc-for>
+    </div>
+    <div style="flex:1 1 auto;"></div>
+    <span style="font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:500; letter-spacing:.03em;">{{ clock }}</span>
+    <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8b93a1; min-width:96px;">{{ offsetLabel }}</span>
+    <button onClick="{{ goLive }}" style="display:flex; align-items:center; gap:7px; height:30px; padding:0 12px; border-radius:6px; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.12em; border:1px solid {{ liveBorder }}; background:{{ liveBg }}; color:{{ liveFg }};">
+      <span style="width:7px; height:7px; border-radius:50%; background:{{ liveFg }}; animation:{{ liveAnim }};"></span>{{ liveLabel }}
+    </button>
+  </header>
+
+  <main style="flex:1 1 auto; min-height:0; overflow:auto; background:#ffffff;">
+
+    <div style="position:sticky; top:0; z-index:3; background:#ffffff; border-bottom:1px solid #eef1f5; padding:9px 18px 6px;">
+      <div style="display:grid; grid-template-columns:minmax(170px,240px) minmax(0,1fr) 124px 92px 58px; gap:10px; align-items:center;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.14em; color:#6b7482;">ДОРОЖКА</span>
+        </div>
+        <div style="position:relative; height:15px; border-bottom:1px solid #eef1f5;">
+          <sc-for list="{{ ruler }}" as="u" hint-placeholder-count="0">
+            <span style="position:absolute; left:{{ u.left }}; top:0; transform:translateX({{ u.shift }}); font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:#6b7482;">{{ u.label }}</span>
+          </sc-for>
+          <div style="position:absolute; top:12px; bottom:-2px; left:{{ playheadLeft }}; width:1px; background:#161a20;"></div>
+        </div>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.14em; color:#6b7482; text-align:right;">ПОТОК</span>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.14em; color:#6b7482; text-align:right;">СТАТУС</span>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.14em; color:#6b7482; text-align:right;">ВРЕМЯ</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px; padding-top:7px; flex-wrap:wrap;">
+        <span style="display:flex; align-items:center; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6b7482;">
+          <span style="width:30px; height:8px; border-radius:3px; background:rgba(37,99,235,.63); box-shadow:2px 0 0 0 #2563eb, 0 0 6px 1px rgba(37,99,235,.45);"></span>идёт сейчас
+        </span>
+        <span style="display:flex; align-items:center; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6b7482;">
+          <span style="width:30px; height:8px; border-radius:3px; background:rgba(21,128,61,.33);"></span>завершено
+        </span>
+      </div>
+    </div>
+
+    <div style="padding:4px 18px 26px;">
+
+      <div style="display:flex; align-items:center; gap:9px; padding:14px 0 6px;">
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.16em; color:#8b93a1;">ОБМЕН СООБЩЕНИЯМИ</span>
+        <span style="flex:1 1 auto; height:1px; background:#eef1f5;"></span>
+      </div>
+      <sc-for list="{{ lanes }}" as="L" hint-placeholder-count="3">
+        <div style="display:grid; grid-template-columns:minmax(170px,240px) minmax(0,1fr) 124px 92px 58px; gap:10px; align-items:center; padding:3px 0;">
+          <div style="display:flex; align-items:center; gap:7px; min-width:0;">
+            <span style="width:8px; height:8px; border-radius:50%; background:{{ L.color }}; flex:0 0 auto;"></span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:{{ L.color }}; letter-spacing:.04em;">{{ L.role }}</span>
+          </div>
+          <div style="position:relative; height:22px; border-radius:4px; background:#f8fafc; background-image:linear-gradient(90deg,#eef1f5 1px,transparent 1px); background-size:25% 100%;">
+            <sc-for list="{{ L.marks }}" as="m" hint-placeholder-count="0">
+              <div onMouseEnter="{{ m.over }}" onMouseLeave="{{ hoverOff }}" onClick="{{ m.jump }}" style="position:absolute; left:{{ m.left }}; top:0; bottom:0; display:flex; flex-direction:{{ m.dir }}; align-items:center; gap:6px; cursor:pointer; z-index:2; max-width:{{ m.room }}; transform:translateX({{ m.shift }});">
+                <span style="width:{{ m.size }}; height:{{ m.size }}; border-radius:50%; background:{{ m.fill }}; box-shadow:0 0 0 1.5px {{ m.color }}; margin:{{ m.dotMargin }}; flex:0 0 auto;"></span>
+                <span style="font-size:10.5px; color:{{ m.labelColor }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; background:#ffffffde; padding:0 3px; border-radius:3px;">{{ m.label }}</span>
+              </div>
+            </sc-for>
+            <div style="position:absolute; top:-1px; bottom:-1px; left:{{ playheadLeft }}; width:1px; background:#161a20; opacity:.28;"></div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:#5b636f; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ L.count }}</div>
+          <div></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:#6b7482; text-align:right;">{{ L.meta }}</div>
+        </div>
+      </sc-for>
+      <div style="font-size:11.5px; color:#a6adba; padding:4px 2px;">{{ lanesEmpty }}</div>
+
+      <div style="display:flex; align-items:center; gap:9px; padding:18px 0 6px;">
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.16em; color:#8b93a1;">РАБОТА</span>
+        <span style="flex:1 1 auto; height:1px; background:#eef1f5;"></span>
+      </div>
+      <sc-for list="{{ rows }}" as="g" hint-placeholder-count="8">
+        <div onMouseEnter="{{ g.over }}" onMouseLeave="{{ hoverOff }}" onClick="{{ g.jump }}" style="display:grid; grid-template-columns:minmax(170px,240px) minmax(0,1fr) 124px 92px 58px; gap:10px; align-items:center; padding:2px 0; cursor:pointer; border-radius:5px;" style-hover="background:#f4f7fb;">
+          <div style="display:flex; align-items:baseline; gap:7px; min-width:0;">
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:{{ g.idColor }}; flex:0 0 auto;">{{ g.id }}</span>
+            <span style="font-size:11.5px; font-weight:{{ g.titleWeight }}; color:{{ g.titleColor }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ g.title }}</span>
+          </div>
+          <div style="position:relative; height:20px; border-radius:4px; background:#f8fafc; background-image:linear-gradient(90deg,#eef1f5 1px,transparent 1px); background-size:25% 100%; overflow:hidden;">
+            <div style="position:absolute; left:{{ g.barLeft }}; width:{{ g.barWidth }}; top:{{ g.barTop }}; height:{{ g.barH }}; border-radius:3px; background:{{ g.barBg }};"></div>
+            <div style="position:absolute; left:{{ g.headLeft }}; top:{{ g.capTop }}; width:{{ g.capW }}; height:{{ g.capH }}; border-radius:2px; background:{{ g.barColor }}; opacity:{{ g.capOpacity }}; box-shadow:{{ g.capGlow }}; animation:{{ g.headAnim }};"></div>
+            <div style="position:absolute; top:-1px; bottom:-1px; left:{{ playheadLeft }}; width:1px; background:#161a20; opacity:.28;"></div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:{{ g.metaColor }}; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ g.meta }}</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:{{ g.stateColor }}; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ g.stateLabel }}</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:#6b7482; text-align:right;">{{ g.dur }}</div>
+        </div>
+      </sc-for>
+      <div style="font-size:11.5px; color:#a6adba; padding:6px 2px;">{{ rowsEmpty }}</div>
+    </div>
+  </main>
+
+  <sc-if value="{{ hoverShow }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; z-index:60; left:{{ hoverX }}; top:{{ hoverY }}; max-width:340px; pointer-events:none; background:#161a20; color:#f4f6f8; border-radius:8px; padding:9px 11px; box-shadow:0 8px 24px rgba(15,23,42,.28);">
+      <div style="font-size:12.5px; font-weight:600; line-height:1.35; text-wrap:pretty; margin-bottom:5px;">{{ hoverTitle }}</div>
+      <sc-for list="{{ hoverLines }}" as="h" hint-placeholder-count="2">
+        <div style="display:flex; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; line-height:1.6;">
+          <span style="color:#8b93a1; min-width:66px; flex:0 0 auto;">{{ h.k }}</span>
+          <span style="color:{{ h.color }}; flex:1 1 auto; word-break:break-word;">{{ h.v }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <footer style="flex:0 0 auto; background:#ffffff; border-top:1px solid #e2e6ec; padding:10px 18px 12px;">
+    <sc-if value="{{ history }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
+      <button onClick="{{ stepBack }}" style="width:30px; height:30px; border-radius:6px; border:1px solid #dfe3ea; background:#fbfcfd; color:#3c4453; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:12px;" style-hover="background:#f1f4f8;">◀</button>
+      <button onClick="{{ togglePlay }}" style="height:30px; min-width:86px; padding:0 14px; border-radius:6px; border:1px solid #cfd6e0; background:{{ playBg }}; color:{{ playFg }}; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.1em;">{{ playLabel }}</button>
+      <button onClick="{{ stepFwd }}" style="width:30px; height:30px; border-radius:6px; border:1px solid #dfe3ea; background:#fbfcfd; color:#3c4453; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:12px;" style-hover="background:#f1f4f8;">▶</button>
+      <div style="display:flex; gap:4px; margin-left:6px;">
+        <sc-for list="{{ speeds }}" as="s" hint-placeholder-count="4">
+          <button onClick="{{ s.set }}" style="height:28px; padding:0 10px; border-radius:6px; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:11px; border:1px solid {{ s.border }}; background:{{ s.bg }}; color:{{ s.fg }};">{{ s.label }}</button>
+        </sc-for>
+      </div>
+      <span style="flex:1 1 auto;"></span>
+      <button onClick="{{ addBookmark }}" style="height:28px; padding:0 12px; border-radius:6px; border:1px solid #dfe3ea; background:#fbfcfd; color:#3c4453; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:11px;" style-hover="background:#f1f4f8;">＋ закладка</button>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#98a0ae;">{{ rangeLabel }}</span>
+    </div>
+
+    <div style="position:relative; height:26px;">
+      <sc-for list="{{ bookmarks }}" as="b" hint-placeholder-count="0">
+        <div style="position:absolute; left:{{ b.left }}; top:-2px; transform:translateX(-50%); display:flex; align-items:center; gap:4px; padding:1px 6px; border-radius:10px; border:1px solid #c9b8f0; background:#f3efff; z-index:3;">
+          <span onClick="{{ b.jump }}" style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:#5b3fbe; cursor:pointer;">{{ b.label }}</span>
+          <span onClick="{{ b.remove }}" style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:#a496cd; cursor:pointer;">×</span>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <div ref="{{ trackRef }}" onPointerDown="{{ onTrackDown }}" onPointerMove="{{ onTrackMove }}" onPointerUp="{{ onTrackUp }}" style="position:relative; height:34px; border-radius:7px; background:#f1f4f8; border:1px solid #e2e6ec; cursor:pointer; touch-action:none; overflow:hidden;">
+      <div style="position:absolute; left:0; top:0; bottom:0; width:{{ progress }}; background:#eaf0fb;"></div>
+      <sc-for list="{{ ticks }}" as="t" hint-placeholder-count="0">
+        <div style="position:absolute; left:{{ t.left }}; top:{{ t.top }}; width:2px; height:{{ t.h }}; background:{{ t.color }}; opacity:{{ t.opacity }}; border-radius:2px;"></div>
+      </sc-for>
+      <div style="position:absolute; left:{{ progress }}; top:-2px; bottom:-2px; width:2px; background:#161a20;"></div>
+      <div style="position:absolute; left:{{ progress }}; top:-2px; transform:translateX(-50%); width:9px; height:9px; border-radius:50%; background:#161a20;"></div>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:#a6adba; margin-top:4px;">
+      <span>{{ startLabel }}</span>
+      <span>{{ hintLabel }}</span>
+      <span>{{ endLabel }}</span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;recentMinutes&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:60,&quot;min&quot;:5,&quot;max&quot;:240,&quot;step&quot;:5,&quot;unit&quot;:&quot;мин&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Отображение&quot;}}">
+const ROLE_COLORS = {
+  human:"#4b5563", secretary:"#475569", planner:"#b45309", lead:"#2563eb",
+  worker:"#0f766e", tester:"#9333ea", "sub-planner":"#be123c", reviewer:"#c2410c", researcher:"#0369a1"
+};
+const FALLBACK = ["#7c3aed","#0891b2","#b91c1c","#15803d","#a16207"];
+const STATUS = { green:"#15803d", yellow:"#b45309", red:"#b91c1c" };
+const STATUS_RU = { green:"успешно", yellow:"с замечаниями", red:"с ошибкой" };
+const statusRu = s => (s ? (STATUS_RU[s] || s) : "");
+const ROLE_ORDER = ["human","secretary","planner","sub-planner","lead","worker","tester","reviewer","researcher"];
+
+// served by factory/dashboard.py: the list of run files, newest first, and the files themselves
+const RUNS_URL = "/runs", FILES_URL = "/state/events/";
+const POLL_MS = 3000;
+
+function parseTime(s) {
+  const ms = Date.parse(s); return isNaN(ms) ? 0 : ms / 1000;
+}
+function hhmmss(t) {
+  const d = new Date(t * 1000);
+  return [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2,"0")).join(":");
+}
+function mmss(t) {
+  t = Math.max(0, Math.floor(t));
+  return String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0");
+}
+function cut(s, n) { s = String(s || ""); return s.length > n ? s.slice(0, n-1) + "…" : s; }
+
+class Component extends DCLogic {
+  state = { events: [], t: 0, playing: false, speed: 4, live: true, finished: false, bookmarks: [], dragging: false, runs: [], run: "", pick: "", raw: "", hover: null };
+
+  hoverIn(title, lines) {
+    return e => this.setState({ hover: { title, lines, x: e.clientX, y: e.clientY } });
+  }
+
+  componentDidMount() {
+    this.trackRef = React.createRef();
+    this.refresh();
+    this.poll = setInterval(() => this.refresh(), POLL_MS);
+    let last = performance.now();
+    const loop = now => {
+      const dt = (now - last)/1000; last = now;
+      if (this.state.live) {
+        if (this.now() - this.state.t >= 1) this.setState({ t: this.now() });  // online: the clock is wall time, once a second
+      } else if (this.state.playing) {
+        const end = this.end();
+        const t = this.state.t + dt * this.state.speed;
+        if (t >= end) this.setState({ t: end, playing: false, live: !this.state.finished });
+        else this.setState({ t, live: false });
+      }
+      this.raf = requestAnimationFrame(loop);
+    };
+    this.raf = requestAnimationFrame(loop);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); clearInterval(this.poll); }
+
+  async refresh(pick = this.state.pick) {
+    // the run the user picked, else the newest; re-read every poll because the run rewrites its file each tick
+    try {
+      const runs = await (await fetch(RUNS_URL, { cache: "no-store" })).json();
+      const run = runs.includes(pick) ? pick : runs[0] || "";
+      if (!run) { this.setState({ runs, run }); return; }
+      const raw = await (await fetch(FILES_URL + run, { cache: "no-store" })).text();
+      if (raw !== this.state.raw || run !== this.state.run) this.load(raw, run);
+      this.setState({ runs });
+    } catch (e) { console.error("[board] refresh failed:", e); }
+  }
+
+  load(raw, run) {
+    const events = raw.trim().split(/\n+/).map(l => { try { return JSON.parse(l); } catch (e) { return null; } })
+      .filter(Boolean).map((e, i) => ({ ...e, _t: parseTime(e.at), _i: i }))
+      .sort((a, b) => a._t - b._t || a._i - b._i);
+    const finished = events.some(e => e.kind === "agent" && e.action === "stopped" && e.agent.role === "planner");
+    const fresh = run !== this.state.run;  // another run: back online, bookmarks belong to the old one
+    const last = events.length ? events[events.length-1]._t : this.now();
+    this.setState(s => ({
+      events, raw, run, finished, live: !finished && (fresh || s.live), bookmarks: fresh ? [] : s.bookmarks,
+      t: finished ? (fresh || s.live ? last : s.t) : fresh || s.live ? this.now() : s.t
+    }));
+  }
+
+  now() { return Date.now() / 1000; }
+  start() { const e = this.state.events; return e.length ? e[0]._t : this.now(); }
+  end() {
+    // online the scale runs up to the wall clock; in history it stops at the last event
+    const e = this.state.events, last = e.length ? e[e.length-1]._t : this.now();
+    return this.state.live ? Math.max(last, this.now()) : last;
+  }
+
+  roleColor(role) {
+    if (ROLE_COLORS[role]) return ROLE_COLORS[role];
+    let h = 0; for (const c of String(role)) h = (h*31 + c.charCodeAt(0)) % 997;
+    return FALLBACK[h % FALLBACK.length];
+  }
+
+  build() {
+    const t = this.state.t;
+    const agents = new Map(), tasks = new Map(), msgs = [];
+    for (const e of this.state.events) {
+      if (e._t > t) break;
+      const thread = e.agent && e.agent.thread, role = e.agent && e.agent.role;
+      if (thread && !agents.has(thread))
+        agents.set(thread, { thread, role, model: e.agent.model, startedAt: e._t, endedAt: null, tasks: [], last: null });
+      if (e.kind === "agent") {
+        if (e.action === "started") {
+          const a = agents.get(e.key) || { thread: e.key, role, model: e.agent.model, tasks: [], last: null };
+          a.startedAt = a.startedAt != null ? Math.min(a.startedAt, e._t) : e._t;
+          a.endedAt = null; a.explicit = true;
+          agents.set(e.key, a);
+        } else if (e.action === "stopped" && agents.has(e.key)) { agents.get(e.key).endedAt = e._t; agents.get(e.key).explicit = true; }
+      } else if (e.kind === "task") {
+        let task = tasks.get(e.key);
+        if (!task) { task = { id: e.key, title: e.text || e.key, parent: e.parent, type: e.type || null, state: "queued", by: role, at: e._t, status: null, note: "", runs: 0 }; tasks.set(e.key, task); }
+        if (e.text && e.action === "created") task.title = e.text;
+        if (task.title === e.key && e.text) task.title = e.text;
+        if (e.parent) task.parent = e.parent;
+        if (e.type) task.type = e.type;
+        if (e.action === "created") { task.state = "queued"; task.by = role; task.createdAt = e._t; }
+        if (e.action === "reopened") { task.state = "queued"; task.status = e.status; task.note = e.text; task.assignee = null; task.reopenAt = e._t; task.startAt = null; task.endAt = null; }
+        if (e.action === "started") { task.state = "active"; task.assignee = thread; task.role = role; task.startAt = e._t; task.endAt = null; task.runs++; if (task.createdAt == null) task.createdAt = e._t; }
+        if (e.action === "handed_off") { task.state = "done"; task.status = e.status; task.note = e.text; task.endAt = e._t; }
+        task.at = e._t;
+        const a = agents.get(thread);
+        if (a) {
+          if (e.action === "started") { a.task = e.key; a.last = "взял " + e.key; if (a.tasks.indexOf(e.key) < 0) a.tasks.push(e.key); }
+          if (e.action === "handed_off") { a.task = null; a.last = "handoff " + e.key + (e.text ? ": " + e.text : ""); a.status = e.status; if (!a.explicit) a.endedAt = e._t; }
+          if (e.action === "created") a.last = "создал " + e.key + ": " + (e.text || "");
+        }
+      } else if (e.kind === "message") {
+        msgs.push({ from: role, to: e.key, text: e.text, at: e._t, status: e.status });
+      }
+    }
+    return { agents, tasks, msgs };
+  }
+
+  seekTo(t, live) { this.setState({ t: Math.max(this.start(), Math.min(this.end(), t)), live: !!live, playing: false }); }
+  seekFromX(x) {
+    const el = this.trackRef && this.trackRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    const f = Math.max(0, Math.min(1, (x - r.left) / r.width));
+    this.setState({ t: this.start() + f * (this.end() - this.start()), live: false });
+  }
+
+  renderVals() {
+    const S = this.state, b = this.build();
+    const t = S.t, t0 = this.start(), t1 = this.end(), span = Math.max(1, t1 - t0);
+    const pct = v => (100 * (v - t0) / span).toFixed(3) + "%";
+    const clamp = v => Math.max(0, Math.min(100, 100 * (v - t0) / span));
+    const isLive = S.live;
+
+    const ruler = [0, .5, 1].map(f => ({
+      left: (f * 100).toFixed(1) + "%", label: hhmmss(t0 + f * span),
+      shift: f === 0 ? "0" : f === 1 ? "-100%" : "-50%"
+    }));
+
+    // дорожки обмена сообщениями: человек, секретарь, планировщик
+    const roles = [];
+    for (const m of b.msgs) { for (const r of [m.from, m.to]) if (r && roles.indexOf(r) < 0) roles.push(r); }
+    roles.sort((x, y) => {
+      const ox = ROLE_ORDER.indexOf(x), oy = ROLE_ORDER.indexOf(y);
+      return (ox < 0 ? 90 : ox) - (oy < 0 ? 90 : oy);
+    });
+    const lanes = roles.map(role => {
+      const color = this.roleColor(role);
+      const marks = [];
+      b.msgs.forEach(m => {
+        const sent = m.from === role, got = m.to === role;
+        if (!sent && !got) return;
+        const other = sent ? m.to : m.from;
+        const c = sent ? color : this.roleColor(m.from);
+        const p = clamp(m.at), flip = p > 55;
+        marks.push({
+          at: m.at, p, flip,
+          left: pct(m.at), size: sent ? "10px" : "8px",
+          fill: sent ? c : "#ffffff", color: c,
+          dir: flip ? "row-reverse" : "row",
+          shift: flip ? "-100%" : "0",
+          dotMargin: flip ? "0 -5px 0 0" : "0 0 0 -5px",
+          room: "0%",
+          label: sent ? "→ " + other + " · " + cut(m.text, 34) : "",
+          labelColor: "#5b636f",
+          over: this.hoverIn((sent ? role + " → " + other : m.from + " → " + role), [
+            { k: "время", v: hhmmss(m.at), color: "#cbd2dc" },
+            { k: sent ? "отправил" : "получил", v: sent ? "это " + role : "от " + m.from, color: "#cbd2dc" },
+            { k: "текст", v: m.text || "—", color: "#f4f6f8" },
+            { k: "статус", v: m.status ? statusRu(m.status) : "—", color: m.status ? STATUS[m.status] : "#cbd2dc" }
+          ]),
+          jump: () => this.seekTo(m.at, false)
+        });
+      });
+      marks.sort((x, y) => x.at - y.at);
+      marks.forEach((mk, i) => {
+        const prev = i > 0 ? marks[i-1].p : 0, next = i < marks.length - 1 ? marks[i+1].p : 100;
+        const avail = mk.flip ? mk.p - prev : next - mk.p;
+        mk.room = Math.max(0, avail - 1.2).toFixed(2) + "%";
+        if (avail < 9) mk.label = "";
+      });
+      const out = b.msgs.filter(m => m.from === role).length, inc = b.msgs.filter(m => m.to === role).length;
+      const lastOne = b.msgs.filter(m => m.from === role || m.to === role).slice(-1)[0];
+      return { role, color, marks, meta: lastOne ? hhmmss(lastOne.at) : "—", count: "↑" + out + " ↓" + inc };
+    });
+
+    // one row per agent; its title is the task in hand right now
+    const threadList = [...b.agents.values()].filter(a => a.startedAt != null);
+    const rowStyle = (col, running) => ({
+      // a flat bar from start to end; only a running one has a pulsing head
+      barTop: "6px", barH: "8px", barBg: col + (running ? "a0" : "55"),
+      capTop: "2px", capW: "3px", capH: "16px",
+      capGlow: running ? "0 0 7px 1px " + col + "80" : "none",
+      headAnim: running ? "headPulse 1.4s ease-in-out infinite" : "none",
+      capOpacity: running ? "1" : "0", barColor: col
+    });
+
+    const recentWin = Math.max(1, Number(this.props.recentMinutes ?? 60)) * 60;
+    const rows = threadList
+      .filter(a => a.endedAt == null || t - a.endedAt <= recentWin)
+      .sort((x, y) => {
+        const ox = ROLE_ORDER.indexOf(x.role), oy = ROLE_ORDER.indexOf(y.role);
+        return (ox < 0 ? 90 : ox) - (oy < 0 ? 90 : oy) || x.startedAt - y.startedAt;
+      })
+      .map(a => {
+        const running = a.endedAt == null;
+        const task = a.task ? b.tasks.get(a.task) : null;
+        const col = this.roleColor(a.role);
+        const from = clamp(a.startedAt), to = clamp(Math.min(a.endedAt != null ? a.endedAt : t, t));
+        return Object.assign({
+          id: a.role, idColor: col, title: task ? task.id + " · " + task.title : a.thread,
+          titleColor: running ? "#2c333d" : "#6b7482", titleWeight: running && task ? "600" : "400",
+          barLeft: from.toFixed(2) + "%", barWidth: Math.max(.4, to - from).toFixed(2) + "%",
+          headLeft: "calc(" + to.toFixed(2) + "% - 3px)",
+          meta: a.thread.replace(/^thr_/, ""), metaColor: "#5b636f",
+          stateLabel: running ? "ведёт" : "стоп", stateColor: running ? col : "#6b7482",
+          dur: mmss((a.endedAt != null ? a.endedAt : t) - a.startedAt),
+          over: this.hoverIn(a.role + " · " + a.thread, [
+            { k: "модель", v: a.model || "—", color: "#cbd2dc" },
+            { k: "запущен", v: hhmmss(a.startedAt), color: "#cbd2dc" },
+            { k: "состояние", v: running ? "работает " + mmss(t - a.startedAt) : "остановлен " + hhmmss(a.endedAt), color: running ? "#8ee0a5" : "#cbd2dc" },
+            { k: "в руках", v: task ? task.id + " · " + task.title + " · " + mmss(t - task.startAt) : "—", color: task ? "#8ee0a5" : "#cbd2dc" },
+            { k: "задачи", v: a.tasks && a.tasks.length ? a.tasks.join(", ") : "—", color: "#cbd2dc" },
+            { k: "последнее", v: a.last || "—", color: "#f4f6f8" }
+          ]),
+          jump: () => this.seekTo(a.startedAt, false)
+        }, rowStyle(col, running));
+      });
+
+    const allTasks = [...b.tasks.values()].filter(x => x.createdAt != null && x.createdAt <= t);
+    const activeTasks = allTasks.filter(x => x.startAt != null && x.endAt == null).length;
+    const liveAgents = threadList.filter(a => a.endedAt == null).length;
+    const stats = [
+      { label: "задач", value: String(allTasks.length), color: "#161a20" },
+      { label: "идёт", value: String(activeTasks), color: activeTasks ? "#15803d" : "#98a0ae" },
+      { label: "агентов", value: String(liveAgents), color: liveAgents ? "#2563eb" : "#98a0ae" }
+    ];
+
+    const ticks = S.events.map(e => ({
+      left: pct(e._t),
+      color: e.kind === "task" && e.action === "handed_off" ? (STATUS[e.status] || "#2563eb")
+        : e.kind === "agent" ? (e.action === "started" ? "#0f766e" : "#c2c8d2")
+        : e.kind === "task" ? "#b45309" : "#475569",
+      h: e.kind === "message" ? "12px" : e.action === "handed_off" ? "26px" : "18px",
+      top: e.kind === "message" ? "4px" : e.action === "handed_off" ? "4px" : "8px",
+      opacity: e._t <= t ? "1" : ".3"
+    }));
+
+    const speeds = [1, 4, 15, 60].map(v => ({
+      label: v + "×", set: () => this.setState({ speed: v }),
+      border: S.speed === v ? "#161a20" : "#dfe3ea", bg: S.speed === v ? "#161a20" : "#fbfcfd",
+      fg: S.speed === v ? "#ffffff" : "#3c4453"
+    }));
+
+    const bookmarks = S.bookmarks.map((bm, i) => ({
+      left: pct(bm), label: hhmmss(bm),
+      jump: () => this.seekTo(bm, false),
+      remove: () => this.setState(s => ({ bookmarks: s.bookmarks.filter((_, j) => j !== i) }))
+    }));
+
+    const runs = S.runs.map(name => ({ name, label: name.replace(/\.jsonl$/, "") }));
+
+    return {
+      clock: hhmmss(t), offsetLabel: "+" + mmss(t - t0) + " / " + mmss(span),
+      runs, run: S.run,
+      pickRun: e => { const pick = e.target.value; this.setState({ pick }); this.refresh(pick); },
+      history: !isLive,
+      liveLabel: isLive ? "ОНЛАЙН" : S.finished ? "ЗАВЕРШЁН" : "ИСТОРИЯ", liveFg: isLive ? "#15803d" : "#8b93a1",
+      liveBg: isLive ? "#f0fdf4" : "#fbfcfd", liveBorder: isLive ? "#bbf7d0" : "#dfe3ea",
+      liveAnim: isLive ? "livePulse 1.6s ease-in-out infinite" : "none",
+      goLive: () => S.finished ? this.seekTo(this.end(), false) : this.setState({ t: this.now(), live: true, playing: false }),
+      stats, ruler, lanes, rows,
+      lanesEmpty: lanes.length ? "" : "сообщений ещё не было",
+      rowsEmpty: rows.length ? "" : "работа ещё не началась",
+      playheadLeft: pct(t),
+      hoverShow: !!S.hover, hoverTitle: S.hover ? S.hover.title : "",
+      hoverLines: S.hover ? S.hover.lines : [],
+      hoverX: S.hover ? Math.min(S.hover.x + 16, Math.max(20, window.innerWidth - 356)) + "px" : "0px",
+      hoverY: S.hover ? Math.min(S.hover.y + 14, Math.max(20, window.innerHeight - 240)) + "px" : "0px",
+      hoverOff: () => { if (this.state.hover) this.setState({ hover: null }); },
+      ticks, bookmarks, progress: pct(t),
+      startLabel: hhmmss(t0), endLabel: hhmmss(t1),
+      hintLabel: isLive ? "онлайн · клик по шкале открывает историю" : (S.finished ? "прогон завершён · " : "") + "тяните шкалу · ◀ ▶ шаг по событиям",
+      rangeLabel: S.events.length + " событий",
+      playLabel: S.playing ? "⏸ ПАУЗА" : "▶ ПУСК",
+      playBg: S.playing ? "#161a20" : "#fbfcfd", playFg: S.playing ? "#ffffff" : "#3c4453",
+      togglePlay: () => this.setState(s => ({ playing: !s.playing, t: s.t >= this.end() - .2 ? this.start() : s.t, live: false })),
+      stepBack: () => { const p = S.events.filter(e => e._t < t - .01); this.seekTo(p.length ? p[p.length-1]._t : t0, false); },
+      stepFwd: () => { const n = S.events.find(e => e._t > t + .01); this.seekTo(n ? n._t : t1, !n); },
+      speeds, addBookmark: () => this.setState(s => ({ bookmarks: [...s.bookmarks, s.t].sort((a, c) => a - c) })),
+      trackRef: this.trackRef,
+      onTrackDown: e => { this.setState({ dragging: true, playing: false }); if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId); this.seekFromX(e.clientX); },
+      onTrackMove: e => { if (this.state.dragging) this.seekFromX(e.clientX); },
+      onTrackUp: () => this.setState({ dragging: false })
+    };
+  }
+}
+</script>
+</body>
+</html>
