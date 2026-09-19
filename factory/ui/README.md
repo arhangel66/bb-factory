@@ -9,6 +9,7 @@ the run goes and as a recording after.
 uv run python -m factory.ui.serve      # http://localhost:8877/
 ```
 
-It lists the runs in `state/events/` (newest first) and reads the chosen file every few seconds.
+The panel on the left lists the runs in `state/events/` (newest first) with the goal, how each ended and its
+task count; the chosen file is re-read every few seconds.
 `timeline.html` is the page, `support.js` its runtime (generated, do not edit).
 To see it without a run of your own, copy `docs/examples/events.jsonl` into `state/events/`.

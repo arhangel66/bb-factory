@@ -1,11 +1,32 @@
 """Serves the timeline page: factory/ui/ and state/events/ as static files, plus the list of runs."""
 
 import json
+import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from factory.state import EVENTS, ROOT
 
 PORT = 8877
+STALE_SECONDS = 60  # a run rewrites its file every tick; one this quiet without a report is gone
+
+
+def run_summary(history: Path) -> dict:
+    # what the page lists a run by: when it started, its goal, how it ended and how many tasks it had
+    events = [json.loads(line) for line in history.read_text().splitlines() if line]
+    messages = [e for e in events if e["kind"] == "message"]
+    goal = next((m["text"] for m in messages if m["agent"]["role"] == "human"), "")
+    report = next((m["status"] for m in messages if m["agent"]["role"] == "planner" and m["status"]), None)
+    planner_stopped = any(e["kind"] == "agent" and e["action"] == "stopped" and e["agent"]["role"] == "planner"
+                          for e in events)
+    if report:
+        status = report  # green, yellow or red
+    elif planner_stopped or time.time() - history.stat().st_mtime > STALE_SECONDS:
+        status = "aborted"
+    else:
+        status = "live"
+    return {"name": history.name, "started": events[0]["at"] if events else "", "goal": goal, "status": status,
+            "tasks": len({e["key"] for e in events if e["kind"] == "task"})}
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -18,7 +39,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_header("Location", "/factory/ui/timeline.html")
             self.end_headers()
         elif self.path == "/runs":
-            body = json.dumps(sorted((p.name for p in EVENTS.glob("*.jsonl")), reverse=True)).encode()
+            runs = sorted(EVENTS.glob("*.jsonl"), key=lambda history: history.name, reverse=True)
+            body = json.dumps([run_summary(history) for history in runs], ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))

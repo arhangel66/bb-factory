@@ -29,11 +29,6 @@
 
   <header style="flex:0 0 auto; display:flex; align-items:center; gap:14px; height:54px; padding:0 18px; background:#ffffff; border-bottom:1px solid #e2e6ec;">
     <span style="font-size:13px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;">Доска планировщика</span>
-    <select value="{{ run }}" onChange="{{ pickRun }}" style="height:28px; padding:0 8px; border-radius:6px; border:1px solid #dfe3ea; background:#fbfcfd; color:#3c4453; font-family:'IBM Plex Mono',monospace; font-size:11px; cursor:pointer;">
-      <sc-for list="{{ runs }}" as="r" hint-placeholder-count="1">
-        <option value="{{ r.name }}">{{ r.label }}</option>
-      </sc-for>
-    </select>
     <div style="display:flex; gap:14px; margin-left:4px;">
       <sc-for list="{{ stats }}" as="s" hint-placeholder-count="3">
         <span style="display:flex; align-items:baseline; gap:5px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8b93a1;">
@@ -49,6 +44,22 @@
     </button>
   </header>
 
+  <div style="flex:1 1 auto; min-height:0; display:flex;">
+  <aside style="flex:0 0 260px; min-height:0; overflow:auto; background:#fbfcfd; border-right:1px solid #e2e6ec; padding:6px 0 12px;">
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.14em; color:#6b7482; padding:8px 16px 6px;">ПРОГОНЫ</div>
+    <sc-for list="{{ runs }}" as="r" hint-placeholder-count="3">
+      <div onClick="{{ r.pick }}" style="padding:8px 14px 8px 13px; cursor:pointer; border-left:3px solid {{ r.border }}; background:{{ r.bg }};" style-hover="background:#f1f4f8;">
+        <div style="display:flex; align-items:center; gap:7px; font-family:'IBM Plex Mono',monospace; font-size:10.5px;">
+          <span style="width:7px; height:7px; border-radius:50%; background:{{ r.color }}; animation:{{ r.anim }};"></span>
+          <span style="color:{{ r.color }};">{{ r.state }}</span>
+          <span style="color:#98a0ae; margin-left:auto;">{{ r.when }}</span>
+        </div>
+        <div style="font-size:12px; color:#161a20; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ r.goal }}</div>
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#98a0ae; margin-top:3px;">{{ r.meta }}</div>
+      </div>
+    </sc-for>
+    <div style="font-size:11.5px; color:#a6adba; padding:4px 16px;">{{ runsEmpty }}</div>
+  </aside>
   <main style="flex:1 1 auto; min-height:0; overflow:auto; background:#ffffff;">
 
     <div style="position:sticky; top:0; z-index:3; background:#ffffff; border-bottom:1px solid #eef1f5; padding:9px 18px 6px;">
@@ -127,6 +138,7 @@
       <div style="font-size:11.5px; color:#a6adba; padding:6px 2px;">{{ rowsEmpty }}</div>
     </div>
   </main>
+  </div>
 
   <sc-if value="{{ hoverShow }}" hint-placeholder-val="{{ false }}">
     <div style="position:fixed; z-index:60; left:{{ hoverX }}; top:{{ hoverY }}; max-width:340px; pointer-events:none; background:#161a20; color:#f4f6f8; border-radius:8px; padding:9px 11px; box-shadow:0 8px 24px rgba(15,23,42,.28);">
@@ -209,6 +221,11 @@ function mmss(t) {
   return String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0");
 }
 function cut(s, n) { s = String(s || ""); return s.length > n ? s.slice(0, n-1) + "…" : s; }
+function ddmmhhmm(iso) {
+  const d = new Date(iso), pad = n => String(n).padStart(2,"0");
+  return isNaN(d) ? "" : pad(d.getDate())+"."+pad(d.getMonth()+1)+" "+pad(d.getHours())+":"+pad(d.getMinutes());
+}
+function tasksRu(n) { return n + " " + (n % 10 === 1 && n % 100 !== 11 ? "задача" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "задачи" : "задач"); }
 
 class Component extends DCLogic {
   state = { events: [], t: 0, playing: false, speed: 4, live: true, finished: false, bookmarks: [], dragging: false, runs: [], run: "", pick: "", raw: "", hover: null };
@@ -242,7 +259,8 @@ class Component extends DCLogic {
     // the run the user picked, else the newest; re-read every poll because the run rewrites its file each tick
     try {
       const runs = await (await fetch(RUNS_URL, { cache: "no-store" })).json();
-      const run = runs.includes(pick) ? pick : runs[0] || "";
+      const names = runs.map(r => r.name);
+      const run = names.includes(pick) ? pick : names[0] || "";
       if (!run) { this.setState({ runs, run }); return; }
       const raw = await (await fetch(FILES_URL + run, { cache: "no-store" })).text();
       if (raw !== this.state.raw || run !== this.state.run) this.load(raw, run);
@@ -458,12 +476,21 @@ class Component extends DCLogic {
       remove: () => this.setState(s => ({ bookmarks: s.bookmarks.filter((_, j) => j !== i) }))
     }));
 
-    const runs = S.runs.map(name => ({ name, label: name.replace(/\.jsonl$/, "") }));
+    // the runs panel: the live run pulses, a finished one wears the colour of its report, a dead one is grey
+    const runs = S.runs.map(r => {
+      const live = r.status === "live", picked = r.name === S.run;
+      return {
+        state: live ? "идёт" : STATUS_RU[r.status] || "оборван", color: live ? "#15803d" : STATUS[r.status] || "#98a0ae",
+        anim: live ? "livePulse 1.6s ease-in-out infinite" : "none", when: ddmmhhmm(r.started),
+        goal: r.goal || "без цели", meta: tasksRu(r.tasks) + " · " + r.name.replace(/^.*-(FAB-\d+)\.jsonl$/, "$1"),
+        border: picked ? "#161a20" : "transparent", bg: picked ? "#eef2f7" : "transparent",
+        pick: () => { this.setState({ pick: r.name }); this.refresh(r.name); }
+      };
+    });
 
     return {
       clock: hhmmss(t), offsetLabel: "+" + mmss(t - t0) + " / " + mmss(span),
-      runs, run: S.run,
-      pickRun: e => { const pick = e.target.value; this.setState({ pick }); this.refresh(pick); },
+      runs, runsEmpty: runs.length ? "" : "прогонов ещё нет",
       history: !isLive,
       liveLabel: isLive ? "ОНЛАЙН" : S.finished ? "ЗАВЕРШЁН" : "ИСТОРИЯ", liveFg: isLive ? "#15803d" : "#8b93a1",
       liveBg: isLive ? "#f0fdf4" : "#fbfcfd", liveBorder: isLive ? "#bbf7d0" : "#dfe3ea",
