@@ -142,16 +142,16 @@ def test_a_handoff_brings_the_work_home_and_wakes_the_planner(board: Board) -> N
     assert board.tracker.tasks["FAB-1"]["status"] == "done"
 
 
-def test_a_handoff_on_a_canceled_task_is_dropped(board: Board) -> None:
+def test_a_task_canceled_while_running_stops_its_worker_at_once(board: Board) -> None:
     create_and_dispatch(board)
     write_intent(PLANNER, "cancel", key="FAB-1", why="not needed")
 
-    handoff(board)
+    board.fold()
 
-    assert board.workspace.dropped == ["FAB-1"]
-    assert board.workspace.merged == []
-    assert board.threads.told == []
+    assert board.threads.archived == ["thr_1"] and board.workspace.dropped == ["FAB-1"]
     assert board.tracker.tasks["FAB-1"]["status"] == "canceled"
+    handoff(board)  # the worker's last word, if it came through, changes nothing
+    assert board.threads.archived == ["thr_1"] and board.workspace.merged == [] and board.threads.told == []
 
 
 def test_a_conflict_goes_back_to_its_worker_who_hands_off_again(board: Board) -> None:

@@ -127,6 +127,9 @@ class Board:
             elif intent["intent"] == "cancel":
                 emit(agent, "task", "canceled", task["key"], type=task["type"], parent=task["parent"])
                 log(f"{task['key']} canceled by the {agent['role']}: {intent['why']!r}")
+                if task["thread"] in self.alive:  # canceled while running: its agent stops now, not at its handoff
+                    self.release(task)
+                    self.workspace.drop(task["key"])
             elif intent["intent"] == "handoff":
                 self.bring_home(task, intent)
         for stray in self.tracker.strays:
@@ -168,8 +171,8 @@ class Board:
         log(f"handoff {key} → {'lead of ' + task['parent'] if task['parent'] else 'planner'}: {handoff['summary']!r}")
 
     def release(self, task: dict) -> None:
-        # a per-task thread is done with its task
-        if task["thread"] not in self.shared.values():
+        # a per-task thread is done with its task; a shared one goes on, an archived one stays archived
+        if task["thread"] in self.alive and task["thread"] not in self.shared.values():
             self.archive(task["thread"])
             self.leads.pop(task["key"], None)
 

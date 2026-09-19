@@ -42,6 +42,9 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
   — at start, when the project did not exist yet, and after the foundation — and never a page behind it;
   a lead read the index three times and DESIGN.md once, after first failing on the path: the prompt says
   "the directory above `.factory/`", the lead's directory is one level deeper (`.factory/lead/FAB-2`).
+- A cancel did not stop anyone: FAB-35 was canceled 13 seconds after its worker started (the lead had
+  read FAB-28's handoff and wanted the palette written against it — the right move), and the worker went
+  on for its whole task, to a handoff the board then dropped. Same for FAB-49's tester.
 - Master briefly did not start (the seed referenced a table a canceled task had created); a lead caught it
   from a red handoff and made FAB-50 "restore clean database startup". Nothing in the board checks that
   master runs after a merge.
@@ -53,6 +56,8 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
       merge, the task goes back to the same worker with the conflict, its worktree kept, and its next
       handoff counts. The redo copy is only for a dead worker. The tool-side gate of
       [green-handoff.md](green-handoff.md) (a `handoff` that refuses until green) is still open
+- [x] A task canceled while running stops its agent at once: the thread is archived and the worktree
+      dropped in the same tick, not at the handoff that nobody reads
 - [ ] Cut the project so tasks do not share files: the foundation epic must leave one router module and one
       models module per area, registered by a loop, migrations named by task key or timestamp instead of a
       running number, and the lead names in every task the files it owns.

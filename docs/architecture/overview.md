@@ -7,7 +7,7 @@ The board makes a run directory under `state/runs/`, spawns the planner and the 
 then ticks every 10 seconds:
 
 1. **fold** — the intents the agents appended (`intents.jsonl`) become tasks (`Tracker`, the only writer of
-   `tasks.json`): a create or a cancel is noted, a handoff brings the work home — the worker's worktree is
+   `tasks.json`): a create is noted, a cancel stops the task's agent at once, a handoff brings the work home — the worker's worktree is
    merged into the project and whoever planned the task is woken (the lead of its epic, else the planner);
    work that does not merge goes back to its worker with the conflict, the worktree kept, to merge the main
    branch in and hand off again; a dead worker's task is canceled and a copy takes its place among the
