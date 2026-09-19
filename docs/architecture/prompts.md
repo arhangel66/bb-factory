@@ -8,7 +8,7 @@ Everything a model reads lives in `factory/roles/prompts/`, nowhere else.
 | `lead.md` | lead thread, one per epic | once, at spawn, followed by the epic's brief |
 | `secretary.md` | secretary thread, the only agent that talks to Mikhail | once, at spawn |
 | `imitator.md` | imitator thread | once, at spawn |
-| `worker.md` | worker thread, one per `code` task | once, at spawn, followed by the task's brief |
+| `worker.md` | worker thread, one per `code` task | once, at spawn, followed by the task's brief; ends with the ponytail ladder (after DietrichGebert/ponytail, MIT): YAGNI, reuse, stdlib, platform, one line, minimum |
 | `tester.md` | tester thread, one per `test` task | once, at spawn, followed by the task's brief |
 | `task_brief.md` | imitator, worker, tester | every task sent to it |
 | `conflict.md` | worker | when its branch does not merge: the conflict text and the main branch to merge in |

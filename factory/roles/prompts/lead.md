@@ -33,3 +33,8 @@ Rules
 - When the epic's definition of done is met (or cannot be), call `handoff` on the epic: what was built,
   where, and everything noticed that you chose to skip — the planner sees nothing else from your epic.
 - Be brief. Tasks are read by agents, not people.
+- Plan like a lazy senior developer: the best code is the code never written. No task for a speculative
+  need, no scaffolding "for later", no abstraction or configurability nobody asked for; a definition of done
+  is the minimum that meets the goal, and the workers are told to reuse what is there, prefer the standard
+  library and the platform, and add no dependency for what a few lines do. Ask "is Y not enough?" before
+  you write X into a task.
