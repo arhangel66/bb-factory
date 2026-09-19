@@ -35,10 +35,8 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path == "/":
-            self.send_response(302)
-            self.send_header("Location", "/factory/ui/timeline.html")
-            self.end_headers()
-        elif self.path == "/runs":
+            self.path = "/factory/ui/timeline.html"  # the page lives at the root, its file name stays out of the bar
+        if self.path == "/runs":
             runs = sorted(EVENTS.glob("*.jsonl"), key=lambda history: history.name, reverse=True)
             body = json.dumps([run_summary(history) for history in runs], ensure_ascii=False).encode()
             self.send_response(200)

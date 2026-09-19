@@ -22,6 +22,28 @@ class Role(StrEnum):
     imitator = "imitator"  # plays whatever role its task needs, for test runs
 
 
+class Model(StrEnum):
+    """What bb's pi provider can run; the full catalog is `bb provider models pi`."""
+
+    gpt_5_6_terra = "openai-codex/gpt-5.6-terra"
+    gpt_5_6_sol = "openai-codex/gpt-5.6-sol"
+    gpt_5_6_luna = "openai-codex/gpt-5.6-luna"
+    gpt_6_astra = "openai-codex/gpt-6-astra"
+    gpt_5_5 = "openai-codex/gpt-5.5"
+    gpt_5_4_mini = "openai-codex/gpt-5.4-mini"
+    kimi_k3 = "kimi-coding/k3-256k"
+
+
+class Thinking(StrEnum):
+    """How long an agent reasons before it acts: bb's `--reasoning-level`, the same five steps for every model."""
+
+    low = "low"
+    medium = "medium"
+    high = "high"
+    xhigh = "xhigh"
+    max = "max"
+
+
 ROLE_BY_LABEL = {"code": Role.worker, "test": Role.tester, "epic": Role.lead, "ask": Role.secretary}
 LABEL_BY_ROLE = {role: label for label, role in ROLE_BY_LABEL.items()}
 
@@ -40,7 +62,8 @@ TOOLS_BY_ROLE: dict[Role, tuple[str, ...]] = {
 @dataclass(frozen=True)
 class AgentConfig:
     prompt: Role  # prompts/<prompt>.md; the role the pi extension gates tools by
-    model: str = "openai-codex/gpt-5.6-terra"
+    model: Model = Model.gpt_5_6_terra
+    thinking: Thinking = Thinking.medium
     mode: Literal["per_task", "shared"] = "per_task"  # shared = one thread for every task (the imitator)
 
 

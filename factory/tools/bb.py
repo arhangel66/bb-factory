@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from factory.roles import Model, Thinking
 from factory.state import run_info
 
 PROJECT = "FAB"
@@ -53,12 +54,12 @@ class Threads:
     def __init__(self):
         self.retries: dict[str, int] = {}
 
-    def spawn(self, title: str, prompt: str, model: str, path: Path) -> str:
+    def spawn(self, title: str, prompt: str, model: Model, thinking: Thinking, path: Path) -> str:
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
             f.write(prompt)
         thread = bb(
             "thread", "spawn", "--project", BB_PROJECT, "--environment", str(path),
-            "--provider", "pi", "--model", model, "--permission-mode", "full",
+            "--provider", "pi", "--model", model, "--reasoning-level", thinking, "--permission-mode", "full",
             "--section", SECTION, "--title", title, "--prompt-file", f.name,
         )
         return thread["id"]

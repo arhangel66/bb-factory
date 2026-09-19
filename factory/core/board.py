@@ -63,10 +63,10 @@ class Board:
         self.relayed = 1  # the goal is in the planner's prompt, it is not delivered twice
         planner, secretary = self.config[Role.planner], self.config[Role.secretary]
         self.planner = self.threads.spawn(f"{planner.prompt} {planner.model}", prompt(planner.prompt, goal=goal),
-                                          planner.model, self.workspace.agent_dir(Role.planner))
+                                          planner.model, planner.thinking, self.workspace.agent_dir(Role.planner))
         # the secretary starts with the planner: every run ends with a report for it to pass on
         self.secretary = self.shared[secretary] = self.threads.spawn(
-            f"{secretary.prompt} {secretary.model}", prompt(secretary.prompt), secretary.model,
+            f"{secretary.prompt} {secretary.model}", prompt(secretary.prompt), secretary.model, secretary.thinking,
             self.workspace.agent_dir(Role.planner))
         RUN_FILE.write_text(json.dumps({"number": number, "planner": self.planner}))
         log(f"goal «{goal}» → planner {self.planner}, secretary {self.secretary}, tasks from {number}")
@@ -138,13 +138,13 @@ class Board:
         # thread title = "<prompt> [<task>] <model>": the pi extension gates tools by the first word, the timeline reads the rest
         if agent.mode == "per_task":
             thread = self.threads.spawn(f"{agent.prompt} {task['key']} {agent.model}", prompt(agent.prompt) + "\n\n" + brief,
-                                        agent.model, self.dir_for(agent, role, task["key"]))
+                                        agent.model, agent.thinking, self.dir_for(agent, role, task["key"]))
         elif agent in self.shared:
             thread = self.shared[agent]
             self.threads.tell(thread, brief)
         else:  # spawned with its first task: left idle, it invents work for itself
             thread = self.shared[agent] = self.threads.spawn(f"{agent.prompt} {agent.model}", prompt(agent.prompt) + "\n\n" + brief,
-                                                             agent.model, self.dir_for(agent, role, task["key"]))
+                                                             agent.model, agent.thinking, self.dir_for(agent, role, task["key"]))
         self.tasks.attach(task["key"], thread)
         if agent is self.config[Role.lead]:
             self.leads[task["key"]] = thread
