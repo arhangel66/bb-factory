@@ -1,10 +1,10 @@
 # Prompts
 
-Everything a model reads lives here, nowhere else.
+Everything a model reads lives in `factory/roles/prompts/`, nowhere else.
 
 | file | who reads it | when |
 |---|---|---|
-| `planner.md` | planner thread | once, at spawn (`{goal}` filled by `factory/board.py`) |
+| `planner.md` | planner thread | once, at spawn (`{goal}` filled by `factory/core/board.py`) |
 | `lead.md` | lead thread, one per epic | once, at spawn, followed by the epic's brief |
 | `secretary.md` | secretary thread, the only agent that talks to Mikhail | once, at spawn |
 | `imitator.md` | imitator thread | once, at spawn |
