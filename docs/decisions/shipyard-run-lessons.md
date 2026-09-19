@@ -34,6 +34,11 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
 - The seventh conflict at 00:08 was add/add on `app/migrations/0003_demo_workspace.sql`: two parallel tasks
   numbered their migration 0003. It cost the realtime transport (45 minutes of a worker) and put five
   tasks behind its copy.
+- The docs get written (13 files, 403 lines, updated by 9 of the first 12 merged tasks: an index, the
+  architecture, file ownership per epic, API contracts, five ADRs). The planner read `docs/index.md` twice
+  — at start, when the project did not exist yet, and after the foundation — and never a page behind it;
+  a lead read the index three times and DESIGN.md once, after first failing on the path: the prompt says
+  "the directory above `.factory/`", the lead's directory is one level deeper (`.factory/lead/FAB-2`).
 - Master briefly did not start (the seed referenced a table a canceled task had created); a lead caught it
   from a red handoff and made FAB-50 "restore clean database startup". Nothing in the board checks that
   master runs after a merge.
@@ -66,6 +71,9 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
 - [ ] Drag for the tester: a recipe that works (`bsk evaluate` dispatching pointerdown/move/up on the card
       and the target column, or a Python script over the app's own API as the fallback that is named as
       such); without it every drag check is "not seen"
+- [ ] The lead and the planner prompts give the exact relative path to the project's `docs/` from where
+      each of them sits; the review wake names the docs pages changed since the last look, so the planner
+      opens what moved instead of the index
 - [ ] A review the planner can fail: the wake carries, per open epic, its age and its open/done/canceled
       task counts, the conflicts and cancellations since the last review, and the time left against the
       goal's deadline; the prompt asks for a verdict per epic, not a sentence for the whole, and lets the
