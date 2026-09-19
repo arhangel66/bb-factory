@@ -22,9 +22,11 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
 - A false red at 23:54: the goal says "Tailwind CSS from the CDN", the foundation worker wrote into
   DESIGN.md "never fetch CSS from a third party at runtime", the tester of the board epic saw only
   DESIGN.md and failed the epic on the CDN request. The lead filed "Remove runtime Tailwind dependency"
-  and a re-test that proves no third-party CSS; a worker is now rewriting every Tailwind class by hand.
-  Nobody could stop it: the planner has no channel to a lead, and a cancel by someone else does not wake
-  the task's owner — the lead would wait for a handoff that never comes.
+  and a re-test that proves no third-party CSS. It cost five minutes, not the night: the foundation had
+  written its own design system in `app.css` and the templates used a dozen Tailwind utilities, which the
+  worker added as local helpers. But nobody could have stopped it: the planner has no channel to a lead,
+  and a cancel by someone else does not wake the task's owner — the lead would wait for a handoff that
+  never comes.
 - The same worker spent its first minute reading twelve other threads' output through `bb thread output`
   (the bb CLI is on its path); the tester could not drag a card (`bsk` has no drag, a synthetic
   PointerEvent did not reach the card) and full-page screenshots failed — stage 3's "drag 10 of 10" has no
