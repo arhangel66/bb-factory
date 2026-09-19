@@ -11,6 +11,6 @@ Everything a model reads lives in `factory/roles/prompts/`, nowhere else.
 | `worker.md` | worker thread, one per `code` task | once, at spawn, followed by the task's brief |
 | `tester.md` | tester thread, one per `test` task | once, at spawn, followed by the task's brief |
 | `task_brief.md` | imitator, worker, tester | every task sent to it |
-| `wake.md` | planner, lead, secretary | every wake: a handoff, a message, a heartbeat or Mikhail's silence, plus their floor of the board |
+| `wake.md` | planner, lead, secretary | every wake: a handoff, a message, a review or Mikhail's silence, plus their floor of the board |
 
 Tool descriptions the models see are in `.pi/extensions/factory.ts`.

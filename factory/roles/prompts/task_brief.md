@@ -1,5 +1,3 @@
-Task {key} «{title}» · {labels} · priority {priority}
+Task {key} «{title}» · {type} · priority {priority}
 
 {description}
-
-{handoffs}
