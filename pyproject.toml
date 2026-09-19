@@ -12,3 +12,4 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+testpaths = ["tests"]  # a run's workdir link under state/ has tests of its own

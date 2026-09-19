@@ -77,6 +77,22 @@ def test_a_second_handoff_is_ignored(tracker: Tracker) -> None:
     assert len(tracker.tasks["FAB-1"]["handoffs"]) == 1
 
 
+def test_a_task_handed_back_takes_its_next_handoff(tracker: Tracker) -> None:
+    create("FAB-1")
+    tracker.fold()
+    tracker.start("FAB-1", WORKER)
+    handoff("FAB-1")
+    tracker.fold()
+
+    tracker.hand_back("FAB-1")
+    handoff("FAB-1")
+    applied = tracker.fold()
+
+    assert [i["intent"] for i in applied] == ["handoff"]
+    assert tracker.tasks["FAB-1"]["status"] == "done"
+    assert len(tracker.tasks["FAB-1"]["handoffs"]) == 2
+
+
 def test_priority_changes_only_while_the_task_waits(tracker: Tracker) -> None:
     create("FAB-1")
     create("FAB-2")

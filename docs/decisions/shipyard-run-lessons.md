@@ -35,10 +35,11 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
 
 ## Ideas
 
-- [ ] Resolve a conflict instead of redoing the task: keep the task's branch, spawn a worker on it with the
-      conflict text and one job — merge master in, resolve, run the check, hand off. The redo copy stays
-      as the fallback when the resolution fails. Cheaper still: the worker merges master before its handoff
-      ([green-handoff.md](green-handoff.md)), so the board's merge is a fast-forward most of the time
+- [x] Resolve a conflict instead of redoing the task (Mikhail: the worker owns its task up to the merge):
+      the worker merges the main branch into its worktree before it hands off; when the board still cannot
+      merge, the task goes back to the same worker with the conflict, its worktree kept, and its next
+      handoff counts. The redo copy is only for a dead worker. The tool-side gate of
+      [green-handoff.md](green-handoff.md) (a `handoff` that refuses until green) is still open
 - [ ] Cut the project so tasks do not share files: the foundation epic must leave one router module and one
       models module per area, registered by a loop, and the lead names in every task the files it owns.
       Where the goal is written by us, say it in the goal; where it is not, the lead prompt says it

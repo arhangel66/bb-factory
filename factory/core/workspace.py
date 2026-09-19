@@ -74,7 +74,8 @@ class Workspace:
             git(self.workdir, "worktree", "remove", "--force", str(path))
 
     def merge(self, key: str, title: str) -> str | None:
-        # the board commits and merges for the worker; the conflict comes back as text, the worktree always goes
+        # the board commits and merges for the worker; a conflict comes back as text and the worktree stays
+        # for the worker to resolve it in — the commit also completes a merge the worker left resolved
         path = self.factory / "work" / key
         if not path.exists():
             return None
@@ -83,5 +84,9 @@ class Workspace:
         merged = git(self.workdir, "merge", "--no-ff", "--no-edit", key, check=False)
         if merged.returncode != 0:
             git(self.workdir, "merge", "--abort", check=False)
+            return f"{merged.stdout}\n{merged.stderr}".strip()
         git(self.workdir, "worktree", "remove", "--force", str(path))
-        return f"{merged.stdout}\n{merged.stderr}".strip() if merged.returncode != 0 else None
+        return None
+
+    def main_branch(self) -> str:
+        return git(self.workdir, "branch", "--show-current").stdout.strip()

@@ -31,7 +31,8 @@ of it lands in the project. `warning` goes through every gate like `ok`.
 The logic lives in Python, `factory/core/finish.py` — `finish(worktree, key, title) -> str | None`, the
 refusal text or None — and the tool calls it as a subprocess, so it is tested with pytest and the extension
 stays a thin caller. The board's merge remains as it is minus the commit: master is already in the branch,
-so the merge is trivial; the conflict copy stays for the race when master moved between the two.
+so the merge is trivial; the race when master moved between the two goes back to the same worker with the
+conflict (done 2026-09-20, `Board.bring_home`), the copy only when the worker is dead.
 
 **The tester commits too**: its `handoff` runs `git add -A && git commit -m "<key> <title>"` in the project
 itself. Nothing finished is left uncommitted.

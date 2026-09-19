@@ -9,8 +9,9 @@ then ticks every 10 seconds:
 1. **fold** — the intents the agents appended (`intents.jsonl`) become tasks (`Tracker`, the only writer of
    `tasks.json`): a create or a cancel is noted, a handoff brings the work home — the worker's worktree is
    merged into the project and whoever planned the task is woken (the lead of its epic, else the planner);
-   a conflict cancels the task and makes a copy that takes its place among the blockers and waits for the
-   code tasks in flight; a canceled task's work is dropped
+   work that does not merge goes back to its worker with the conflict, the worktree kept, to merge the main
+   branch in and hand off again; a dead worker's task is canceled and a copy takes its place among the
+   blockers, waiting for the code tasks in flight; a canceled task's work is dropped
 2. **deliver** — messages between Mikhail's Telegram and the threads (`messages.jsonl` is the queue)
 3. **dispatch** — `todo` tasks whose blockers are done go to an agent by type, urgent first, while a slot is
    free; the brief carries the task's epic and the handoffs of the tasks it waited on

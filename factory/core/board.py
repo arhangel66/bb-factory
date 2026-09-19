@@ -134,22 +134,30 @@ class Board:
         self.tracker.strays.clear()
 
     def bring_home(self, task: dict, handoff: dict) -> None:
-        # the task's agent is through: its thread goes, its work is merged, whoever planned the task is woken
+        # the task's agent is through: its work is merged, its thread goes, whoever planned the task is woken.
+        # work that does not merge goes back to its worker, still there, to merge the main branch in and hand
+        # off again; only a dead worker's task is redone by a copy
         key = task["key"]
-        emit(self.agent_of(handoff["thread"], task), "task", "handed_off", key, handoff["summary"],
-             COLOR[handoff["outcome"]], task["type"], task["parent"])
-        if task["thread"] not in self.shared.values():
-            self.archive(task["thread"])  # a per-task thread is done
-            self.leads.pop(key, None)
+        agent = self.agent_of(handoff["thread"], task)
+        emit(agent, "task", "handed_off", key, handoff["summary"], COLOR[handoff["outcome"]], task["type"], task["parent"])
         if task["status"] == "canceled":
             self.workspace.drop(key)
+            self.release(task)
             log(f"handoff {key} dropped: the task was canceled")
             return
         conflict = self.workspace.merge(key, task["title"])
+        if conflict and self.threads.alive(task["thread"]):
+            self.tracker.hand_back(key)
+            emit(agent, "task", "returned", key, "not merged: the worker resolves the conflict",
+                 type=task["type"], parent=task["parent"])
+            self.threads.tell(task["thread"], prompt("conflict", conflict=conflict, main=self.workspace.main_branch()))
+            log(f"{key} conflicts with the project → back to its worker {task['thread']}")
+            return
+        self.release(task)
         if conflict:
             copy = self.tracker.copy(key, f"Redo of {key}: the merge of its work into the project failed:\n\n```\n"
                                           f"{conflict}\n```\n\nDo the task again, in a fresh worktree of the current code.")
-            emit(self.agent_of(handoff["thread"], task), "task", "canceled", key, f"not merged, redone as {copy['key']}",
+            emit(agent, "task", "canceled", key, f"not merged, redone as {copy['key']}",
                  type=task["type"], parent=task["parent"])
             emit(self.agent_of(copy["created_by"], copy), "task", "created", copy["key"], copy["title"],
                  type=copy["type"], parent=copy["parent"])
@@ -158,6 +166,12 @@ class Board:
         planner = self.leads[task["parent"]] if task["parent"] else self.planner
         self.wake(planner, f"{key} «{task['title']}»\n{handoff_body(handoff)}", self.tracker.floor(task["parent"]))
         log(f"handoff {key} → {'lead of ' + task['parent'] if task['parent'] else 'planner'}: {handoff['summary']!r}")
+
+    def release(self, task: dict) -> None:
+        # a per-task thread is done with its task
+        if task["thread"] not in self.shared.values():
+            self.archive(task["thread"])
+            self.leads.pop(task["key"], None)
 
     def dispatch_ready(self) -> None:
         # todo tasks whose blockers are done, urgent first, while an agent is free

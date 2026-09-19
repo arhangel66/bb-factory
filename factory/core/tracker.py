@@ -76,7 +76,8 @@ class Tracker:
         if kind == "priority" and task["status"] == "todo":
             task["priority"] = intent["priority"]
             return True
-        if kind == "handoff" and task["status"] in ("in_progress", "canceled") and not task["handoffs"]:
+        if kind == "handoff" and (task["status"] == "in_progress"
+                                  or task["status"] == "canceled" and not task["handoffs"]):
             task["handoffs"].append({field: intent[field] for field in ("at", "thread", "outcome", "summary", "text")})
             if task["status"] == "in_progress":
                 task["status"] = "done"  # a canceled task keeps its status: the board drops the work
@@ -85,6 +86,10 @@ class Tracker:
 
     def start(self, key: str, thread: str) -> None:
         self.tasks[key].update(status="in_progress", thread=thread)
+
+    def hand_back(self, key: str) -> None:
+        # the work did not merge: the task is the worker's again, its next handoff counts
+        self.tasks[key]["status"] = "in_progress"
 
     def copy(self, key: str, note: str) -> dict:
         # the board's own create: the same task again with the note on top, for whoever created the original.

@@ -57,6 +57,22 @@ def test_conflicting_work_comes_back_as_text(prepared: Workspace) -> None:
     assert (prepared.workdir / "app.py").read_text() == "print('one')\n"  # the project keeps the merged work
     assert subprocess.run(["git", "-C", str(prepared.workdir), "status", "--porcelain"],
                           capture_output=True, text=True).stdout == ""
+    assert (prepared.factory / "work/FAB-2").exists()  # the worker resolves it there
+
+
+def test_a_conflict_the_worker_resolved_merges_the_second_time(prepared: Workspace) -> None:
+    work(prepared, "FAB-1", "app.py", "print('one')\n")
+    work(prepared, "FAB-2", "app.py", "print('two')\n")
+    prepared.merge("FAB-1", "first task")
+    prepared.merge("FAB-2", "second task")
+    worktree = prepared.factory / "work/FAB-2"
+    git(worktree, "merge", prepared.main_branch(), check=False)  # what the worker is told to run
+    (worktree / "app.py").write_text("print('one')\nprint('two')\n")
+
+    assert prepared.merge("FAB-2", "second task") is None
+
+    assert (prepared.workdir / "app.py").read_text() == "print('one')\nprint('two')\n"
+    assert not worktree.exists()
 
 
 def test_prepare_forgets_the_worktrees_of_a_run_before(prepared: Workspace) -> None:

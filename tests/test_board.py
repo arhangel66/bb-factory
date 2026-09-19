@@ -23,6 +23,7 @@ class FakeThreads:
         self.told: list[tuple[str, str]] = []
         self.archived: list[str] = []
         self.unarchived: list[str] = []
+        self.dead: set[str] = set()
 
     def spawn(self, title: str, prompt: str, model: Model, thinking: Thinking, path: Path) -> str:
         self.spawned.append(title)
@@ -42,7 +43,7 @@ class FakeThreads:
         return "idle"
 
     def alive(self, thread: str) -> bool:
-        return True
+        return thread not in self.dead
 
     def usage(self, thread: str) -> dict:
         return {"turns": 1, "items": {"toolCall": 2}, "tokens": {"total": 10}}
@@ -75,6 +76,9 @@ class FakeWorkspace:
 
     def drop(self, key: str) -> None:
         self.dropped.append(key)
+
+    def main_branch(self) -> str:
+        return "master"
 
 
 @pytest.fixture
@@ -150,9 +154,30 @@ def test_a_handoff_on_a_canceled_task_is_dropped(board: Board) -> None:
     assert board.tracker.tasks["FAB-1"]["status"] == "canceled"
 
 
-def test_a_conflict_makes_a_copy_for_the_same_creator(board: Board) -> None:
+def test_a_conflict_goes_back_to_its_worker_who_hands_off_again(board: Board) -> None:
     board.workspace.conflict = "CONFLICT (content): app.py"
     create_and_dispatch(board)
+
+    handoff(board)
+
+    assert board.tracker.tasks["FAB-1"]["status"] == "in_progress"
+    assert "FAB-2" not in board.tracker.tasks and board.threads.archived == []
+    assert board.threads.told[-1][0] == "thr_1" and "CONFLICT (content): app.py" in board.threads.told[-1][1]
+    assert "git merge master" in board.threads.told[-1][1]
+    assert [e["action"] for e in events(board) if e["kind"] == "task"][-2:] == ["handed_off", "returned"]
+
+    board.workspace.conflict = None
+    handoff(board)
+
+    assert board.tracker.tasks["FAB-1"]["status"] == "done" and board.threads.archived == ["thr_1"]
+    assert board.workspace.merged == ["FAB-1", "FAB-1"]
+    assert board.threads.told[-1][0] == PLANNER and "FAB-1" in board.threads.told[-1][1]
+
+
+def test_a_conflict_of_a_dead_worker_makes_a_copy_for_the_same_creator(board: Board) -> None:
+    board.workspace.conflict = "CONFLICT (content): app.py"
+    create_and_dispatch(board)
+    board.threads.dead.add("thr_1")
 
     handoff(board)
 
