@@ -1,9 +1,9 @@
-"""Serves the board page: dashboard/ and state/events/ as static files, plus the list of runs."""
+"""Serves the timeline page: factory/ui/ and state/events/ as static files, plus the list of runs."""
 
 import json
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
-from factory.bb import EVENTS, ROOT
+from factory.state import EVENTS, ROOT
 
 PORT = 8877
 
@@ -15,7 +15,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self) -> None:
         if self.path == "/":
             self.send_response(302)
-            self.send_header("Location", "/dashboard/board.dc.html")
+            self.send_header("Location", "/factory/ui/timeline.html")
             self.end_headers()
         elif self.path == "/runs":
             body = json.dumps(sorted((p.name for p in EVENTS.glob("*.jsonl")), reverse=True)).encode()
@@ -36,7 +36,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def serve(port: int) -> None:
-    print(f"board at http://localhost:{port}/", flush=True)
+    print(f"timeline at http://localhost:{port}/", flush=True)
     ThreadingHTTPServer(("localhost", port), Handler).serve_forever()
 
 

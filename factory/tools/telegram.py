@@ -4,11 +4,8 @@ import json
 import urllib.request
 from pathlib import Path
 
-from factory.bb import ROOT
+from factory.state import SETTINGS, TOKEN_FILE
 
-# state/ is gitignored. Two files, one writer each: `bb secret request` owns the token, the board owns the rest
-TOKEN_FILE = ROOT / "state/telegram.env"  # FACTORY_TELEGRAM_TOKEN=...; no agent ever reads it
-SETTINGS = ROOT / "state/telegram.json"  # {"chat", "who", "offset"}; the chat is whoever writes to the bot first
 API = "https://api.telegram.org/bot{token}/{method}"
 
 

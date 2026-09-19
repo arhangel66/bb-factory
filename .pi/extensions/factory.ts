@@ -8,9 +8,9 @@ import { Type } from "typebox";
 const PROJECT = "FAB";
 // an agent runs in a directory of its own, where .pi is a symlink back to the factory: that is where state/ lives
 const FACTORY = join(realpathSync(".pi"), "..");
-// factory/board.py writes the run's first task number here; the board tool hides tasks of earlier runs
+// factory/core/board.py writes the run's first task number here; the board tool hides tasks of earlier runs
 const runStart = (): number => JSON.parse(readFileSync(join(FACTORY, "state/run.json"), "utf8")).number;
-const MESSAGES = join(FACTORY, "state/messages.jsonl"); // the planner's report goes here; factory/board.py ends the run on it
+const MESSAGES = join(FACTORY, "state/messages.jsonl"); // the planner's report goes here; factory/core/board.py ends the run on it
 
 // the thread title is "<prompt> [<task>] <model>": the first word is the role, a lead's second word is its epic
 const ROLE_TOOLS: Record<string, string[]> = {

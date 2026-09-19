@@ -3,58 +3,24 @@
 import json
 import re
 import time
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Callable
 
-from factory.bb import ROOT, RUN_FILE, Tasks, Threads
-from factory.roles import ROLE_BY_LABEL, Role
-from factory.telegram import Telegram
-from factory.workspace import Workspace
+from factory.core.workspace import Workspace
+from factory.roles import ROLE_BY_LABEL, AgentConfig, Config, Role, prompt
+from factory.state import MESSAGES, RUN_FILE
+from factory.tools.bb import Tasks, Threads
+from factory.tools.messages import messages, write_message
+from factory.tools.telegram import Telegram
 
 TICK = timedelta(seconds=10)
 HEARTBEAT = timedelta(minutes=5)
-PROMPTS = ROOT / "prompts"
-MESSAGES = ROOT / "state/messages.jsonl"  # {"at", "from", "to", "text", "status"}; the planner's `report` tool appends
-
-
-@dataclass(frozen=True)
-class AgentConfig:
-    prompt: Role  # prompts/<prompt>.md; the role the pi extension gates tools by
-    model: str = "openai-codex/gpt-5.6-terra"
-    mode: Literal["per_task", "shared"] = "per_task"  # shared = one thread for every task (the imitator)
-
-
-@dataclass(frozen=True)
-class Config:
-    planner: AgentConfig
-    lead: AgentConfig  # plans an `epic` task as sub-tasks, one thread per epic
-    worker: AgentConfig  # does `code` tasks
-    tester: AgentConfig  # does `test` tasks
-    secretary: AgentConfig  # does `ask` tasks: the only agent that talks to Mikhail
-
-
 PRIORITY = {"urgent": 0, "high": 1, "medium": 2, "low": 3, "none": 4}
 
 
 def log(event: str) -> None:
     print(f"{datetime.now():%H:%M:%S}  {event}", flush=True)
-
-
-def prompt(name: str, **fields: str) -> str:
-    return (PROMPTS / f"{name}.md").read_text().format(**fields)
-
-
-def write_message(sender: str, to: str, text: str) -> None:
-    # state/messages.jsonl is the run's conversation; the agents' own tools append to it the same way
-    message = {"at": datetime.now().astimezone().isoformat(), "from": sender, "to": to, "text": text, "status": None}
-    with MESSAGES.open("a") as file:
-        file.write(json.dumps(message, ensure_ascii=False) + "\n")
-
-
-def messages() -> list[dict]:
-    return [json.loads(line) for line in MESSAGES.read_text().splitlines() if line]
 
 
 def blocked_by(task: dict) -> list[str]:
@@ -94,7 +60,7 @@ class Board:
         MESSAGES.write_text("")
         write_message("human", Role.planner, goal)
         self.relayed = 1  # the goal is in the planner's prompt, it is not delivered twice
-        planner, secretary = self.config.planner, self.config.secretary
+        planner, secretary = self.config[Role.planner], self.config[Role.secretary]
         self.planner = self.threads.spawn(f"{planner.prompt} {planner.model}", prompt(planner.prompt, goal=goal),
                                           planner.model, self.workspace.agent_dir(Role.planner))
         # the secretary starts with the planner: every run ends with a report for it to pass on
@@ -143,7 +109,7 @@ class Board:
                 continue
             if any(by_key.get(k, {}).get("status") != "done" for k in blocked_by(t)):
                 continue
-            agent: AgentConfig = getattr(self.config, role)
+            agent = self.config[role]
             if role != Role.lead and not self.free(agent, running):
                 continue
             self.dispatch(t, agent, role)
@@ -179,7 +145,7 @@ class Board:
             thread = self.shared[agent] = self.threads.spawn(f"{agent.prompt} {agent.model}", prompt(agent.prompt) + "\n\n" + brief,
                                                              agent.model, self.dir_for(agent, role, task["key"]))
         self.tasks.attach(task["key"], thread)
-        if agent is self.config.lead:
+        if agent is self.config[Role.lead]:
             self.leads[task["key"]] = thread
         self.forwarded.discard(task["key"])  # a reopened task will hand off again
         log(f"task {task['key']} «{task['title']}» → {agent.prompt} {thread}")

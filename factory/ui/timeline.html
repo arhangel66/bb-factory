@@ -193,7 +193,7 @@ const STATUS_RU = { green:"успешно", yellow:"с замечаниями", 
 const statusRu = s => (s ? (STATUS_RU[s] || s) : "");
 const ROLE_ORDER = ["human","secretary","planner","sub-planner","lead","worker","tester","reviewer","researcher"];
 
-// served by factory/dashboard.py: the list of run files, newest first, and the files themselves
+// served by factory/ui/serve.py: the list of run files, newest first, and the files themselves
 const RUNS_URL = "/runs", FILES_URL = "/state/events/";
 const POLL_MS = 3000;
 

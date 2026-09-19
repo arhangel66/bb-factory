@@ -6,10 +6,12 @@ and a secretary's message to Mikhail goes out through the run's Telegram.
 
 from pathlib import Path
 
-from factory.bb import PROJECT, Tasks, Threads, bb
-from factory.board import MESSAGES, log, messages, prompt
-from factory.roles import LABEL_BY_ROLE, Role
-from factory.workspace import Workspace
+from factory.core.board import log
+from factory.core.workspace import Workspace
+from factory.roles import LABEL_BY_ROLE, Role, prompt
+from factory.state import MESSAGES
+from factory.tools.bb import PROJECT, Tasks, Threads, bb
+from factory.tools.messages import messages
 
 
 def create_task_and_return_key(title: str, description: str, label: str) -> str:

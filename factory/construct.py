@@ -2,12 +2,13 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from factory.bb import EVENTS, PROJECT, Tasks, Threads, run_info
-from factory.board import AgentConfig, Board, Config
-from factory.roles import Role
-from factory.telegram import Telegram
-from factory.timeline import events
-from factory.workspace import Workspace
+from factory.core.board import Board
+from factory.core.timeline import events
+from factory.core.workspace import Workspace
+from factory.roles import AgentConfig, Config, Role
+from factory.state import EVENTS, run_info
+from factory.tools.bb import PROJECT, Tasks, Threads
+from factory.tools.telegram import Telegram
 
 # test run: one imitator plays every worker and tester, one thread so its story stays consistent;
 # the planner and the leads are real, they only create tasks
@@ -34,20 +35,20 @@ def run(goal: str, config: Config, workdir: Path) -> None:
 
 
 if __name__ == "__main__":
-    test_config = Config(
-        planner=AgentConfig(prompt=Role.planner),
-        lead=AgentConfig(prompt=Role.lead),
-        worker=IMITATOR,
-        tester=IMITATOR,
-        secretary=IMITATOR,  # a test run reaches nobody's Telegram
-    )
-    real_config = Config(
-        planner=AgentConfig(prompt=Role.planner),
-        lead=AgentConfig(prompt=Role.lead),
-        worker=WORKER,
-        tester=TESTER,
-        secretary=SECRETARY,
-    )
+    test_config: Config = {
+        Role.planner: AgentConfig(prompt=Role.planner),
+        Role.lead: AgentConfig(prompt=Role.lead),
+        Role.worker: IMITATOR,
+        Role.tester: IMITATOR,
+        Role.secretary: IMITATOR,  # a test run reaches nobody's Telegram
+    }
+    real_config: Config = {
+        Role.planner: AgentConfig(prompt=Role.planner),
+        Role.lead: AgentConfig(prompt=Role.lead),
+        Role.worker: WORKER,
+        Role.tester: TESTER,
+        Role.secretary: SECRETARY,
+    }
 
     task = "напиши калькулятор в html странице с tailwindcss миленький, отдельным тестированием убедись что миленький"
     run(task, real_config, Path.home() / "w/learning/factory-runs/calculator")

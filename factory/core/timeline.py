@@ -4,9 +4,10 @@ import json
 import re
 from datetime import datetime
 
-from factory.bb import Tasks, Threads, run_info
-from factory.board import messages
 from factory.roles import ROLE_BY_LABEL, Role
+from factory.state import run_info
+from factory.tools.bb import Tasks, Threads
+from factory.tools.messages import messages
 
 COLOR = {"ok": "green", "warning": "yellow", "failed": "red"}
 

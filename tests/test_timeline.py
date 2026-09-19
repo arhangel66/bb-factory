@@ -1,7 +1,7 @@
 import pytest
 
-from factory import timeline as module
-from factory.timeline import events
+from factory.core import timeline as module
+from factory.core.timeline import events
 
 LEAD, WORKER = "thr_lead", "thr_worker"
 

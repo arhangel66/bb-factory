@@ -5,13 +5,12 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from factory.state import run_info
+
 PROJECT = "FAB"
 BB_PROJECT = "proj_x6sd774izb"
 SECTION = "sec_62zku3gn5a"  # sidebar section "Factory · агенты" that holds every thread of a run
 MAX_RETRIES = 3
-ROOT = Path(__file__).resolve().parent.parent  # paths below must not depend on the cwd
-EVENTS = ROOT / "state/events"  # one <started>-<first task>.jsonl per run, rewritten every tick
-RUN_FILE = ROOT / "state/run.json"  # {"number": first task number of the run, "planner": its thread}
 
 
 def bb(*args: str, timeout: int = 60) -> dict:
@@ -19,10 +18,6 @@ def bb(*args: str, timeout: int = 60) -> dict:
     if done.returncode != 0:
         raise RuntimeError(f"bb {' '.join(args)}: {done.stderr.strip() or done.stdout.strip()}")
     return json.loads(done.stdout)
-
-
-def run_info() -> dict:
-    return json.loads(RUN_FILE.read_text())
 
 
 class Tasks:

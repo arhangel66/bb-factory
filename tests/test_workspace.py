@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from factory import workspace as module
-from factory.workspace import Workspace, git
+from factory.core import workspace as module
+from factory.core.workspace import Workspace, git
 
 
 @pytest.fixture

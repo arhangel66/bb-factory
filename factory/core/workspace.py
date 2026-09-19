@@ -4,8 +4,8 @@ import json
 import subprocess
 from pathlib import Path
 
-from factory.bb import ROOT
 from factory.roles import Role
+from factory.state import ROOT
 
 TRUST = Path.home() / ".pi/agent/trust.json"  # {path: trusted}; outside these pi ignores .pi/ and the agent loses its tools
 

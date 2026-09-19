@@ -4,8 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from factory import board as module
-from factory.board import AgentConfig, Board, Config, write_message
+from factory.core.board import Board
+from factory.roles import AgentConfig, Config, Role
+from factory.tools import messages as module
+from factory.tools.messages import write_message
 
 SECRETARY, PLANNER = "thr_secretary", "thr_planner"
 
@@ -42,8 +44,8 @@ def ask(text: str, wait_minutes: int) -> None:
 def board(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Board:
     monkeypatch.setattr(module, "MESSAGES", tmp_path / "messages.jsonl")
     (tmp_path / "messages.jsonl").write_text("")
-    agent = AgentConfig(prompt="secretary")
-    config = Config(planner=agent, lead=agent, worker=agent, tester=agent, secretary=agent)
+    agent = AgentConfig(prompt=Role.secretary)
+    config: Config = {role: agent for role in Role}
     board = Board(config, tasks=None, threads=FakeThreads(), workspace=None, telegram=FakeTelegram())
     board.planner, board.secretary = PLANNER, SECRETARY
     return board
