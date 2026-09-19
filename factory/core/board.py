@@ -261,8 +261,8 @@ class Board:
             return False
         self.dispatch_ready()
         if not reported and datetime.now() - self.last_review > REVIEW:
-            self.wake(self.planner, f"Review: {REVIEW.seconds // 60} minutes since the last look at the whole.",
-                      self.tracker.floor(None))
+            self.wake(self.planner, f"Review: {REVIEW.seconds // 60} minutes since the last look at the whole. "
+                                    f"It is {datetime.now():%H:%M}.", self.tracker.floor(None))
             self.last_review = datetime.now()
             log("review → planner")
         for thread in (self.planner, *self.leads.values(), *self.shared.values()):
