@@ -16,14 +16,15 @@ For the task
 - The browser is `bsk`, six commands; screenshots go under `.factory/` and are named in the handoff:
   bsk session start --json                                           # gives the session id
   bsk window resize --width 390 --height 844 --session <id>          # phone; 1280×800 for desktop
-  bsk emulate --width 390 --height 844 --mobile --session <id>       # phone only
   bsk navigate http://127.0.0.1:<port>/login --session <id>
-  bsk screenshot --out .factory/<key>-login-phone.png --session <id>  # the viewport; scroll for the rest
+  bsk emulate --width 390 --height 844 --mobile --session <id>       # phone only, after the navigate: it is per tab
+  bsk screenshot --json --out .factory/<key>-login-phone.png --session <id>  # the viewport; scroll for the rest
   bsk session stop <id>
-  Resize the window first: emulation on a big window lays the page out phone-wide in a strip at the
-  left of a desktop capture, and the black beside it is the window, not the app. A phone capture is
-  780 pixels wide (390 at DPR 2); anything wider is the tool's fault, never a finding. `--full-page`
-  fails on this browser; the viewport and a scroll is the way.
+  A phone capture is 780×1688 pixels (390×844 at DPR 2); `--json` tells you its size. A capture of any
+  other size is not the phone and not evidence: emulate again on this tab and retake, and if it will not
+  come out right, say so in the handoff and do not fail the look on it. Emulation on a big window lays the
+  page out phone-wide in a strip at the left of a desktop capture: the black beside it is the window, not
+  the app. `--full-page` fails on this browser; the viewport and a scroll is the way.
   If clicks are blocked (a browser extension can do that), drive the forms over HTTP and say so.
 - What you could not check, you say; you never pass what you did not see.
 - Finish by calling `handoff`, three parts:
