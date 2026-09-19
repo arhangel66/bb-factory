@@ -48,7 +48,13 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
 - Three reds on the phone look were the tool: `bsk emulate` on a big window lays the page out 390 wide in
   a strip at the left and the capture shows the whole desktop window, black beside the strip (FAB-54
   noticed, FAB-49 and FAB-81 failed on it; the app's phone layout was fine). Checked at 01:35: `bsk window
-  resize` before `emulate` gives a true 780×1688 capture. The tester prompt now says so.
+  resize` before `emulate` gives a true 780×1688 capture. The tester prompt now says so. It was not enough:
+  the lead of FAB-3 spent rounds four to six (FAB-96/97, 99/100, 101/102, 02:16–02:45) on a drawer footer
+  "absent at 390×844" from captures of 1000×1402 — the resize alone leaves the window at 500×701 CSS px
+  and the emulation had not applied to the tab — while the same tester saw the footer at 390×600. By hand
+  at 02:45, resize → navigate → emulate → capture: 780×1688, footer there. The lead had written the wrong
+  procedure into the tasks as authoritative; nobody could tell it. The prompt now checks the capture's
+  size and forbids a verdict on a capture of the wrong size.
 - At 02:18 a merge failed on "your local changes would be overwritten": the FAB-94 worker had written its
   doc page into the project's own checkout through a relative path instead of its worktree, and the
   uncommitted file blocked the board's merge — the task was redone for it (FAB-98). Testers, who run in
