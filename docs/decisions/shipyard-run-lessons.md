@@ -31,6 +31,9 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
   (the bb CLI is on its path); the tester could not drag a card (`bsk` has no drag, a synthetic
   PointerEvent did not reach the card) and full-page screenshots failed — stage 3's "drag 10 of 10" has no
   tester today.
+- The seventh conflict at 00:08 was add/add on `app/migrations/0003_demo_workspace.sql`: two parallel tasks
+  numbered their migration 0003. It cost the realtime transport (45 minutes of a worker) and put five
+  tasks behind its copy.
 - Master briefly did not start (the seed referenced a table a canceled task had created); a lead caught it
   from a red handoff and made FAB-50 "restore clean database startup". Nothing in the board checks that
   master runs after a merge.
@@ -43,7 +46,8 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
       handoff counts. The redo copy is only for a dead worker. The tool-side gate of
       [green-handoff.md](green-handoff.md) (a `handoff` that refuses until green) is still open
 - [ ] Cut the project so tasks do not share files: the foundation epic must leave one router module and one
-      models module per area, registered by a loop, and the lead names in every task the files it owns.
+      models module per area, registered by a loop, migrations named by task key or timestamp instead of a
+      running number, and the lead names in every task the files it owns.
       Where the goal is written by us, say it in the goal; where it is not, the lead prompt says it
 - [ ] The board says `canceled → redone as FAB-42` in the line, the wake and the timeline; the original
       carries `redone_as`, so a lead sees a dependency moved, not lost
