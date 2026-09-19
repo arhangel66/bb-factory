@@ -45,6 +45,10 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
 - A cancel did not stop anyone: FAB-35 was canceled 13 seconds after its worker started (the lead had
   read FAB-28's handoff and wanted the palette written against it — the right move), and the worker went
   on for its whole task, to a handoff the board then dropped. Same for FAB-49's tester.
+- Three reds on the phone look were the tool: `bsk emulate` on a big window lays the page out 390 wide in
+  a strip at the left and the capture shows the whole desktop window, black beside the strip (FAB-54
+  noticed, FAB-49 and FAB-81 failed on it; the app's phone layout was fine). Checked at 01:35: `bsk window
+  resize` before `emulate` gives a true 780×1688 capture. The tester prompt now says so.
 - Master briefly did not start (the seed referenced a table a canceled task had created); a lead caught it
   from a red handoff and made FAB-50 "restore clean database startup". Nothing in the board checks that
   master runs after a merge.

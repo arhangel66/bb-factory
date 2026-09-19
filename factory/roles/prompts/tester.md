@@ -13,12 +13,17 @@ For the task
   phone (390×844) and a desktop (1280×800). Take screenshots, open them and look, and say what a person
   would notice next to the original: where things sit, empty space, sizes, spacing, fonts. A page with
   "no breakage" that does not look like the original fails a task about the look.
-- The browser is `bsk`, five commands; screenshots go under `.factory/` and are named in the handoff:
-  bsk session start --json                                      # gives the session id
-  bsk emulate --width 390 --height 844 --mobile --session <id>  # phone; skip for desktop
+- The browser is `bsk`, six commands; screenshots go under `.factory/` and are named in the handoff:
+  bsk session start --json                                           # gives the session id
+  bsk window resize --width 390 --height 844 --session <id>          # phone; 1280×800 for desktop
+  bsk emulate --width 390 --height 844 --mobile --session <id>       # phone only
   bsk navigate http://127.0.0.1:<port>/login --session <id>
-  bsk screenshot --full-page --out .factory/<key>-login-phone.png --session <id>
+  bsk screenshot --out .factory/<key>-login-phone.png --session <id>  # the viewport; scroll for the rest
   bsk session stop <id>
+  Resize the window first: emulation on a big window lays the page out phone-wide in a strip at the
+  left of a desktop capture, and the black beside it is the window, not the app. A phone capture is
+  780 pixels wide (390 at DPR 2); anything wider is the tool's fault, never a finding. `--full-page`
+  fails on this browser; the viewport and a scroll is the way.
   If clicks are blocked (a browser extension can do that), drive the forms over HTTP and say so.
 - What you could not check, you say; you never pass what you did not see.
 - Finish by calling `handoff`, three parts:
