@@ -16,7 +16,6 @@ from factory.workspace import Workspace
 TICK = timedelta(seconds=10)
 HEARTBEAT = timedelta(minutes=5)
 PROMPTS = ROOT / "prompts"
-ROLES = ROOT / "state/roles.json"  # {role: [tool]}, written at the start of a run; the pi extension gates by it
 MESSAGES = ROOT / "state/messages.jsonl"  # {"at", "from", "to", "text", "status"}; the planner's `report` tool appends
 
 
@@ -88,15 +87,9 @@ class Board:
         self.waiting: datetime | None = None  # when the answer the secretary is waiting for stops being worth it
         self.last_wake = datetime.now()
 
-    def save_roles(self) -> None:
-        # the extension reads this by the first word of a thread's title; the imitator's roles collapse into one
-        roles = {agent.prompt: [str(tool) for tool in agent.tools] for agent in vars(self.config).values()}
-        ROLES.write_text(json.dumps(roles, indent=2))
-
     def start(self, goal: str) -> None:
         # the goal is a message to the planner; the run is every task numbered from here on
         self.workspace.prepare()
-        self.save_roles()
         number = self.tasks.next_number()
         MESSAGES.write_text("")
         write_message("human", Role.planner, goal)
