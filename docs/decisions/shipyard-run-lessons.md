@@ -58,8 +58,10 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
 - At 02:18 a merge failed on "your local changes would be overwritten": the FAB-94 worker had written its
   doc page into the project's own checkout through a relative path instead of its worktree, and the
   uncommitted file blocked the board's merge — the task was redone for it (FAB-98). Testers, who run in
-  the project itself, can leave the same kind of file. The board now merges with `--autostash`; the stray
-  file was discarded by hand so the redo could land.
+  the project itself, leave the same kind of file: at 03:47 the untracked `KNOWN_ISSUES.md` and `reports/`
+  of stage 1 blocked the merge of the estimate fix (FAB-112 → FAB-114). The board now commits what the
+  tests left in the project before it merges; both times the stray files were handled by hand so the
+  redo could land.
 - Master briefly did not start (the seed referenced a table a canceled task had created); a lead caught it
   from a red handoff and made FAB-50 "restore clean database startup". Nothing in the board checks that
   master runs after a merge.

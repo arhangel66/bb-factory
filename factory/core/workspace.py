@@ -81,8 +81,11 @@ class Workspace:
             return None
         git(path, "add", "-A")
         git(path, "commit", "-m", f"{key} {title}", check=False)  # nothing to commit is not a failure
-        # --autostash: a tester's uncommitted files in the project must not block the merge, nor be lost
-        merged = git(self.workdir, "merge", "--no-ff", "--no-edit", "--autostash", key, check=False)
+        # what the testers left in the project (reports, known issues) is committed first: uncommitted or
+        # untracked files would block the merge, and they belong to the project anyway
+        git(self.workdir, "add", "-A")
+        git(self.workdir, "commit", "-m", "left in the project by the tests", check=False)
+        merged = git(self.workdir, "merge", "--no-ff", "--no-edit", key, check=False)
         if merged.returncode != 0:
             git(self.workdir, "merge", "--abort", check=False)
             return f"{merged.stdout}\n{merged.stderr}".strip()
