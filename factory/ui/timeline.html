@@ -28,6 +28,7 @@
 <div style="height:100vh; display:flex; flex-direction:column; background:#f4f6f8; color:#161a20; font-family:'IBM Plex Sans',system-ui,sans-serif; overflow:hidden;">
 
   <header style="flex:0 0 auto; display:flex; align-items:center; gap:14px; height:54px; padding:0 18px; background:#ffffff; border-bottom:1px solid #e2e6ec;">
+    <button onClick="{{ toggleRuns }}" title="{{ runsHint }}" style="height:26px; padding:0 9px; border-radius:6px; border:1px solid #dfe3ea; background:#fbfcfd; color:#3c4453; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:11px;" style-hover="background:#f1f4f8;">{{ runsToggle }}</button>
     <span style="font-size:13px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;">Доска планировщика</span>
     <div style="display:flex; gap:14px; margin-left:4px;">
       <sc-for list="{{ stats }}" as="s" hint-placeholder-count="3">
@@ -45,6 +46,7 @@
   </header>
 
   <div style="flex:1 1 auto; min-height:0; display:flex;">
+  <sc-if value="{{ runsShow }}" hint-placeholder-val="{{ true }}">
   <aside style="flex:0 0 260px; min-height:0; overflow:auto; background:#fbfcfd; border-right:1px solid #e2e6ec; padding:6px 0 12px;">
     <div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.14em; color:#6b7482; padding:8px 16px 6px;">ПРОГОНЫ</div>
     <sc-for list="{{ runs }}" as="r" hint-placeholder-count="3">
@@ -60,10 +62,11 @@
     </sc-for>
     <div style="font-size:11.5px; color:#a6adba; padding:4px 16px;">{{ runsEmpty }}</div>
   </aside>
+  </sc-if>
   <main style="flex:1 1 auto; min-height:0; overflow:auto; background:#ffffff;">
 
     <div style="position:sticky; top:0; z-index:3; background:#ffffff; border-bottom:1px solid #eef1f5; padding:9px 18px 6px;">
-      <div style="display:grid; grid-template-columns:minmax(170px,240px) minmax(0,1fr) 124px 92px 58px; gap:10px; align-items:center;">
+      <div style="display:grid; grid-template-columns:{{ cols }}; gap:10px; align-items:center;">
         <div style="display:flex; align-items:center; gap:10px;">
           <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.14em; color:#6b7482;">ДОРОЖКА</span>
         </div>
@@ -89,12 +92,27 @@
 
     <div style="padding:4px 18px 26px;">
 
+      <sc-if value="{{ projectShow }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:12px; padding:9px 12px 10px; border:1px solid #e2e6ec; border-radius:8px; background:#fbfcfd;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.16em; color:#8b93a1;">ПРОЕКТ</span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#2c333d;">{{ projectPath }}</span>
+            <button onClick="{{ openProject }}" style="height:24px; padding:0 9px; border-radius:6px; border:1px solid #dfe3ea; background:#ffffff; color:#3c4453; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:10.5px;" style-hover="background:#f1f4f8;">открыть папку</button>
+            <sc-for list="{{ projectCommands }}" as="c" hint-placeholder-count="2">
+              <button onClick="{{ c.copy }}" title="{{ c.hint }}" style="height:24px; padding:0 9px; border-radius:6px; border:1px solid #cfd6e0; background:#ffffff; color:#1d4ed8; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:10.5px; max-width:360px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" style-hover="background:#eef2ff;">{{ c.label }}</button>
+            </sc-for>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#15803d;">{{ copied }}</span>
+          </div>
+          <div style="white-space:pre-wrap; font-size:12px; line-height:1.45; color:#3c4453; margin-top:7px; max-height:130px; overflow:auto;">{{ projectReport }}</div>
+        </div>
+      </sc-if>
+
       <div style="display:flex; align-items:center; gap:9px; padding:14px 0 6px;">
         <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.16em; color:#8b93a1;">ОБМЕН СООБЩЕНИЯМИ</span>
         <span style="flex:1 1 auto; height:1px; background:#eef1f5;"></span>
       </div>
       <sc-for list="{{ lanes }}" as="L" hint-placeholder-count="3">
-        <div style="display:grid; grid-template-columns:minmax(170px,240px) minmax(0,1fr) 124px 92px 58px; gap:10px; align-items:center; padding:3px 0;">
+        <div style="display:grid; grid-template-columns:{{ cols }}; gap:10px; align-items:center; padding:3px 0;">
           <div style="display:flex; align-items:center; gap:7px; min-width:0;">
             <span style="width:8px; height:8px; border-radius:50%; background:{{ L.color }}; flex:0 0 auto;"></span>
             <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:{{ L.color }}; letter-spacing:.04em;">{{ L.role }}</span>
@@ -120,8 +138,9 @@
         <span style="flex:1 1 auto; height:1px; background:#eef1f5;"></span>
       </div>
       <sc-for list="{{ rows }}" as="g" hint-placeholder-count="8">
-        <div onMouseEnter="{{ g.over }}" onMouseLeave="{{ hoverOff }}" onClick="{{ g.jump }}" style="display:grid; grid-template-columns:minmax(170px,240px) minmax(0,1fr) 124px 92px 58px; gap:10px; align-items:center; padding:2px 0; cursor:pointer; border-radius:5px;" style-hover="background:#f4f7fb;">
-          <div style="display:flex; align-items:baseline; gap:7px; min-width:0;">
+        <div onMouseEnter="{{ g.over }}" onMouseLeave="{{ hoverOff }}" onClick="{{ g.click }}" style="display:grid; grid-template-columns:{{ cols }}; gap:10px; align-items:center; padding:2px 0; cursor:pointer; border-radius:5px;" style-hover="background:#f4f7fb;">
+          <div style="display:flex; align-items:baseline; gap:7px; min-width:0; padding-left:{{ g.indent }};">
+            <span onClick="{{ g.toggle }}" title="{{ g.foldHint }}" style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#8b93a1; width:11px; flex:0 0 auto; cursor:pointer;">{{ g.fold }}</span>
             <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:{{ g.idColor }}; flex:0 0 auto;">{{ g.id }}</span>
             <span style="font-size:11.5px; font-weight:{{ g.titleWeight }}; color:{{ g.titleColor }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ g.title }}</span>
           </div>
@@ -149,6 +168,31 @@
           <span style="color:{{ h.color }}; flex:1 1 auto; word-break:break-word;">{{ h.v }}</span>
         </div>
       </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ detailShow }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ detailClose }}" style="position:fixed; inset:0; z-index:50; background:rgba(15,23,42,.35); display:flex; align-items:center; justify-content:center; padding:24px;">
+      <div onClick="{{ detailKeep }}" style="width:min(720px,100%); max-height:100%; overflow:auto; background:#ffffff; border-radius:10px; box-shadow:0 16px 48px rgba(15,23,42,.35); padding:18px 22px 20px;">
+        <div style="display:flex; align-items:baseline; gap:10px;">
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:{{ detailColor }}; flex:0 0 auto;">{{ detailId }}</span>
+          <span style="font-size:15px; font-weight:600; flex:1 1 auto; text-wrap:pretty;">{{ detailTitle }}</span>
+          <span onClick="{{ detailClose }}" style="cursor:pointer; color:#8b93a1; font-size:18px; line-height:1; padding:0 2px;">×</span>
+        </div>
+        <div style="margin-top:10px;">
+          <sc-for list="{{ detailLines }}" as="h" hint-placeholder-count="6">
+            <div style="display:flex; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; line-height:1.7;">
+              <span style="color:#8b93a1; min-width:66px; flex:0 0 auto;">{{ h.k }}</span>
+              <span style="color:{{ h.color }}; flex:1 1 auto; word-break:break-word;">{{ h.v }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.16em; color:#8b93a1; margin:16px 0 6px;">ЗАДАЧА</div>
+        <div style="white-space:pre-wrap; font-size:12.5px; line-height:1.5; color:#2c333d;">{{ detailDescription }}</div>
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.16em; color:#8b93a1; margin:16px 0 6px;">ХЭНДОФ</div>
+        <div style="font-size:12.5px; font-weight:600; color:#2c333d; margin-bottom:4px;">{{ detailSummary }}</div>
+        <div style="white-space:pre-wrap; font-size:12.5px; line-height:1.5; color:#2c333d;">{{ detailText }}</div>
+      </div>
     </div>
   </sc-if>
 
@@ -200,13 +244,13 @@ const ROLE_COLORS = {
   worker:"#0f766e", tester:"#9333ea", "sub-planner":"#be123c", reviewer:"#c2410c", researcher:"#0369a1"
 };
 const FALLBACK = ["#7c3aed","#0891b2","#b91c1c","#15803d","#a16207"];
-const STATUS = { green:"#15803d", yellow:"#b45309", red:"#b91c1c" };
-const STATUS_RU = { green:"успешно", yellow:"с замечаниями", red:"с ошибкой" };
+const STATUS = { green:"#15803d", yellow:"#b45309", red:"#b91c1c", grey:"#98a0ae" };
+const STATUS_RU = { green:"успешно", yellow:"с замечаниями", red:"с ошибкой", grey:"отменена" };
 const statusRu = s => (s ? (STATUS_RU[s] || s) : "");
 const ROLE_ORDER = ["human","secretary","planner","sub-planner","lead","worker","tester","reviewer","researcher"];
 
-// served by factory/ui/serve.py: the list of run files, newest first, and the files themselves
-const RUNS_URL = "/runs", FILES_URL = "/state/events/";
+// served by factory/ui/serve.py: the list of runs, newest first, and each run's events file
+const RUNS_URL = "/runs", FILES_URL = "/state/runs/";
 const POLL_MS = 3000;
 
 function parseTime(s) {
@@ -228,7 +272,14 @@ function ddmmhhmm(iso) {
 function tasksRu(n) { return n + " " + (n % 10 === 1 && n % 100 !== 11 ? "задача" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "задачи" : "задач"); }
 
 class Component extends DCLogic {
-  state = { events: [], t: 0, playing: false, speed: 4, live: true, finished: false, bookmarks: [], dragging: false, runs: [], run: "", pick: "", raw: "", hover: null };
+  state = { events: [], t: 0, playing: false, speed: 4, live: true, finished: false, bookmarks: [], dragging: false, runs: [], run: "", pick: "", raw: "", hover: null, tasks: {}, open: null, runsPanel: true, folded: [], copied: "" };
+
+  copyCommand(command) {
+    return () => navigator.clipboard.writeText(command).then(() => {
+      this.setState({ copied: "скопировано" });
+      setTimeout(() => this.setState({ copied: "" }), 1500);
+    });
+  }
 
   hoverIn(title, lines) {
     return e => this.setState({ hover: { title, lines, x: e.clientX, y: e.clientY } });
@@ -238,6 +289,8 @@ class Component extends DCLogic {
     this.trackRef = React.createRef();
     this.refresh();
     this.poll = setInterval(() => this.refresh(), POLL_MS);
+    this.onKey = e => { if (e.key === "Escape") this.setState({ open: null }); };
+    window.addEventListener("keydown", this.onKey);
     let last = performance.now();
     const loop = now => {
       const dt = (now - last)/1000; last = now;
@@ -253,7 +306,7 @@ class Component extends DCLogic {
     };
     this.raf = requestAnimationFrame(loop);
   }
-  componentWillUnmount() { cancelAnimationFrame(this.raf); clearInterval(this.poll); }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); clearInterval(this.poll); window.removeEventListener("keydown", this.onKey); }
 
   async refresh(pick = this.state.pick) {
     // the run the user picked, else the newest; re-read every poll because the run rewrites its file each tick
@@ -262,9 +315,11 @@ class Component extends DCLogic {
       const names = runs.map(r => r.name);
       const run = names.includes(pick) ? pick : names[0] || "";
       if (!run) { this.setState({ runs, run }); return; }
-      const raw = await (await fetch(FILES_URL + run, { cache: "no-store" })).text();
+      const raw = await (await fetch(FILES_URL + run + "/events.jsonl", { cache: "no-store" })).text();
       if (raw !== this.state.raw || run !== this.state.run) this.load(raw, run);
-      this.setState({ runs });
+      // the tracker's file: the description and the handoff text the events do not carry
+      const reply = await fetch(FILES_URL + run + "/tasks.json", { cache: "no-store" });
+      this.setState({ runs, tasks: reply.ok ? await reply.json() : {} });
     } catch (e) { console.error("[board] refresh failed:", e); }
   }
 
@@ -307,7 +362,7 @@ class Component extends DCLogic {
         if (e.action === "started") {
           const a = agents.get(e.key) || { thread: e.key, role, model: e.agent.model, tasks: [], last: null };
           a.startedAt = a.startedAt != null ? Math.min(a.startedAt, e._t) : e._t;
-          a.endedAt = null; a.explicit = true;
+          a.endedAt = null; a.explicit = true; a.spawnRole = role;
           agents.set(e.key, a);
         } else if (e.action === "stopped" && agents.has(e.key)) { agents.get(e.key).endedAt = e._t; agents.get(e.key).explicit = true; }
       } else if (e.kind === "task") {
@@ -321,6 +376,7 @@ class Component extends DCLogic {
         if (e.action === "reopened") { task.state = "queued"; task.status = e.status; task.note = e.text; task.assignee = null; task.reopenAt = e._t; task.startAt = null; task.endAt = null; }
         if (e.action === "started") { task.state = "active"; task.assignee = thread; task.role = role; task.startAt = e._t; task.endAt = null; task.runs++; if (task.createdAt == null) task.createdAt = e._t; }
         if (e.action === "handed_off") { task.state = "done"; task.status = e.status; task.note = e.text; task.endAt = e._t; }
+        if (e.action === "canceled") { task.state = "done"; task.status = "grey"; task.note = e.text || "отменена"; task.endAt = e._t; }
         task.at = e._t;
         const a = agents.get(thread);
         if (a) {
@@ -402,8 +458,18 @@ class Component extends DCLogic {
       return { role, color, marks, meta: lastOne ? hhmmss(lastOne.at) : "—", count: "↑" + out + " ↓" + inc };
     });
 
-    // one row per agent; its title is the task in hand right now
+    // one row per task taken, under the role that took it, so a shared imitator thread shows every task it played;
+    // a thread has a row of its own unless it was spawned for its task (a worker thread would double its task)
     const threadList = [...b.agents.values()].filter(a => a.startedAt != null);
+    const threadUnits = threadList
+      .filter(a => !a.tasks.some(k => (b.tasks.get(k) || {}).role === a.spawnRole))
+      .map(a => ({ role: a.role, thread: a.thread, model: a.model, startedAt: a.startedAt, endedAt: a.endedAt,
+                   task: null, tasks: a.tasks, last: a.last }));
+    const taskUnits = [...b.tasks.values()].filter(x => x.startAt != null).map(x => {
+      const a = b.agents.get(x.assignee) || {};
+      return { role: x.role, thread: x.assignee, model: a.model, startedAt: x.startAt, endedAt: x.endAt,
+               task: x, tasks: [x.id], last: a.last };
+    });
     const rowStyle = (col, running) => ({
       // a flat bar from start to end; only a running one has a pulsing head
       barTop: "6px", barH: "8px", barBg: col + (running ? "a0" : "55"),
@@ -413,20 +479,42 @@ class Component extends DCLogic {
       capOpacity: running ? "1" : "0", barColor: col
     });
 
+    // threads by role, then the tasks in the order they were taken, a sub-task right under its epic:
+    // the story reads top down, and an epic folds its sub-tasks away
+    const threadRows = threadUnits.sort((x, y) => {
+      const ox = ROLE_ORDER.indexOf(x.role), oy = ROLE_ORDER.indexOf(y.role);
+      return (ox < 0 ? 90 : ox) - (oy < 0 ? 90 : oy) || x.startedAt - y.startedAt;
+    });
+    const taskIds = new Set(taskUnits.map(u => u.task.id));
+    const children = parent => taskUnits
+      .filter(u => (taskIds.has(u.task.parent) ? u.task.parent : null) === parent)
+      .sort((x, y) => x.startedAt - y.startedAt);
+    const taskRows = [];
+    const place = (parent, depth) => children(parent).forEach(u => {
+      u.depth = depth; u.subtasks = children(u.task.id).length;
+      taskRows.push(u);
+      if (!S.folded.includes(u.task.id)) place(u.task.id, depth + 1);
+    });
+    place(null, 0);
+
     const recentWin = Math.max(1, Number(this.props.recentMinutes ?? 60)) * 60;
-    const rows = threadList
+    const rows = [...threadRows, ...taskRows]
       .filter(a => a.endedAt == null || t - a.endedAt <= recentWin)
-      .sort((x, y) => {
-        const ox = ROLE_ORDER.indexOf(x.role), oy = ROLE_ORDER.indexOf(y.role);
-        return (ox < 0 ? 90 : ox) - (oy < 0 ? 90 : oy) || x.startedAt - y.startedAt;
-      })
       .map(a => {
         const running = a.endedAt == null;
-        const task = a.task ? b.tasks.get(a.task) : null;
+        const task = a.task;
+        const folded = task && S.folded.includes(task.id);
         const col = this.roleColor(a.role);
         const from = clamp(a.startedAt), to = clamp(Math.min(a.endedAt != null ? a.endedAt : t, t));
         return Object.assign({
           id: a.role, idColor: col, title: task ? task.id + " · " + task.title : a.thread,
+          indent: (a.depth || 0) * 14 + "px",
+          fold: a.subtasks ? (folded ? "▸" : "▾") : "",
+          foldHint: a.subtasks ? (folded ? "показать подзадачи: " + a.subtasks : "свернуть подзадачи") : "",
+          toggle: e => {
+            e.stopPropagation();
+            if (a.subtasks) this.setState(s => ({ folded: folded ? s.folded.filter(k => k !== task.id) : [...s.folded, task.id] }));
+          },
           titleColor: running ? "#2c333d" : "#6b7482", titleWeight: running && task ? "600" : "400",
           barLeft: from.toFixed(2) + "%", barWidth: Math.max(.4, to - from).toFixed(2) + "%",
           headLeft: "calc(" + to.toFixed(2) + "% - 3px)",
@@ -437,13 +525,28 @@ class Component extends DCLogic {
             { k: "модель", v: a.model || "—", color: "#cbd2dc" },
             { k: "запущен", v: hhmmss(a.startedAt), color: "#cbd2dc" },
             { k: "состояние", v: running ? "работает " + mmss(t - a.startedAt) : "остановлен " + hhmmss(a.endedAt), color: running ? "#8ee0a5" : "#cbd2dc" },
-            { k: "в руках", v: task ? task.id + " · " + task.title + " · " + mmss(t - task.startAt) : "—", color: task ? "#8ee0a5" : "#cbd2dc" },
+            { k: "задача", v: task ? task.id + " · " + task.title + " · " + mmss((task.endAt != null ? task.endAt : t) - task.startAt) : "—", color: task ? "#8ee0a5" : "#cbd2dc" },
             { k: "задачи", v: a.tasks && a.tasks.length ? a.tasks.join(", ") : "—", color: "#cbd2dc" },
             { k: "последнее", v: a.last || "—", color: "#f4f6f8" }
           ]),
-          jump: () => this.seekTo(a.startedAt, false)
+          // a task row opens its details; a thread row moves the playhead to its start
+          click: task ? () => this.setState({ open: task.id, hover: null }) : () => this.seekTo(a.startedAt, false)
         }, rowStyle(col, running));
       });
+
+    // the task the details window shows, as the playhead sees it: the handoff appears once it has happened
+    const open = S.open ? b.tasks.get(S.open) : null;
+    const record = open ? S.tasks[open.id] || {} : {};
+    const handoff = open && open.state === "done" && record.handoffs ? record.handoffs[0] : null;
+    const detailLines = open ? [
+      { k: "тип", v: (record.type || open.type || "—") + " · " + (record.priority || "—"), color: "#2c333d" },
+      { k: "создал", v: open.by || "—", color: "#2c333d" },
+      { k: "после", v: record.blocked_by && record.blocked_by.length ? record.blocked_by.join(", ") : "—", color: "#2c333d" },
+      { k: "поток", v: open.assignee ? open.role + " · " + open.assignee : "—", color: "#2c333d" },
+      { k: "взята", v: open.startAt != null ? hhmmss(open.startAt) : "ещё нет", color: "#2c333d" },
+      { k: "сдана", v: open.endAt != null ? hhmmss(open.endAt) + " · " + mmss(open.endAt - open.startAt) : "ещё нет", color: "#2c333d" },
+      { k: "исход", v: handoff ? handoff.outcome : "—", color: handoff ? (handoff.outcome === "ok" ? STATUS.green : STATUS.red) : "#2c333d" }
+    ] : [];
 
     const allTasks = [...b.tasks.values()].filter(x => x.createdAt != null && x.createdAt <= t);
     const activeTasks = allTasks.filter(x => x.startAt != null && x.endAt == null).length;
@@ -482,15 +585,34 @@ class Component extends DCLogic {
       return {
         state: live ? "идёт" : STATUS_RU[r.status] || "оборван", color: live ? "#15803d" : STATUS[r.status] || "#98a0ae",
         anim: live ? "livePulse 1.6s ease-in-out infinite" : "none", when: ddmmhhmm(r.started),
-        goal: r.goal || "без цели", meta: tasksRu(r.tasks) + " · " + r.name.replace(/^.*-(FAB-\d+)\.jsonl$/, "$1"),
+        goal: r.goal || "без цели", meta: tasksRu(r.tasks),
         border: picked ? "#161a20" : "transparent", bg: picked ? "#eef2f7" : "transparent",
         pick: () => { this.setState({ pick: r.name }); this.refresh(r.name); }
       };
     });
 
+    // the project of the picked run: its folder, and every `command` of the secretary's report as one line
+    // to paste into a terminal — cd into the folder first
+    const picked = S.runs.find(r => r.name === S.run) || {};
+    const projectCommands = picked.workdir ? [
+      { label: "⧉ cd", hint: "cd " + picked.workdir, copy: this.copyCommand("cd " + picked.workdir) },
+      ...[...(picked.report || "").matchAll(/`([^`\n]+)`/g)].map(m => m[1]).filter((c, i, all) => all.indexOf(c) === i).map(c => ({
+        label: "⧉ " + c, hint: "cd " + picked.workdir + " && " + c, copy: this.copyCommand("cd " + picked.workdir + " && " + c)
+      }))
+    ] : [];
+
     return {
+      projectShow: !!picked.workdir, projectPath: picked.workdir || "", projectCommands,
+      projectReport: picked.report || (picked.status === "live" ? "отчёта ещё нет: прогон идёт" : "отчёта нет"),
+      openProject: () => fetch("/open/" + S.run),
+      copied: S.copied,
       clock: hhmmss(t), offsetLabel: "+" + mmss(t - t0) + " / " + mmss(span),
       runs, runsEmpty: runs.length ? "" : "прогонов ещё нет",
+      // the runs panel folds away to give the title column room for five or six words of a task
+      runsShow: S.runsPanel, runsToggle: S.runsPanel ? "◀ прогоны" : "▶ прогоны",
+      runsHint: S.runsPanel ? "скрыть прогоны, расширить названия задач" : "показать прогоны",
+      toggleRuns: () => this.setState(s => ({ runsPanel: !s.runsPanel })),
+      cols: (S.runsPanel ? "minmax(170px,240px)" : "minmax(260px,480px)") + " minmax(0,1fr) 124px 92px 58px",
       history: !isLive,
       liveLabel: isLive ? "ОНЛАЙН" : S.finished ? "ЗАВЕРШЁН" : "ИСТОРИЯ", liveFg: isLive ? "#15803d" : "#8b93a1",
       liveBg: isLive ? "#f0fdf4" : "#fbfcfd", liveBorder: isLive ? "#bbf7d0" : "#dfe3ea",
@@ -505,6 +627,13 @@ class Component extends DCLogic {
       hoverX: S.hover ? Math.min(S.hover.x + 16, Math.max(20, window.innerWidth - 356)) + "px" : "0px",
       hoverY: S.hover ? Math.min(S.hover.y + 14, Math.max(20, window.innerHeight - 240)) + "px" : "0px",
       hoverOff: () => { if (this.state.hover) this.setState({ hover: null }); },
+      detailShow: !!open, detailId: open ? open.id : "", detailTitle: open ? open.title : "",
+      detailColor: open ? this.roleColor(open.role || "worker") : "#6b7482", detailLines,
+      detailDescription: record.description || "—",
+      detailSummary: handoff ? handoff.summary : open && open.state === "done" ? "—" : "ещё в работе",
+      detailText: handoff ? handoff.text : "",
+      detailClose: () => this.setState({ open: null }),
+      detailKeep: e => e.stopPropagation(),
       ticks, bookmarks, progress: pct(t),
       startLabel: hhmmss(t0), endLabel: hhmmss(t1),
       hintLabel: isLive ? "онлайн · клик по шкале открывает историю" : (S.finished ? "прогон завершён · " : "") + "тяните шкалу · ◀ ▶ шаг по событиям",
