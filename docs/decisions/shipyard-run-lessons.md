@@ -49,6 +49,11 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
   a strip at the left and the capture shows the whole desktop window, black beside the strip (FAB-54
   noticed, FAB-49 and FAB-81 failed on it; the app's phone layout was fine). Checked at 01:35: `bsk window
   resize` before `emulate` gives a true 780×1688 capture. The tester prompt now says so.
+- At 02:18 a merge failed on "your local changes would be overwritten": the FAB-94 worker had written its
+  doc page into the project's own checkout through a relative path instead of its worktree, and the
+  uncommitted file blocked the board's merge — the task was redone for it (FAB-98). Testers, who run in
+  the project itself, can leave the same kind of file. The board now merges with `--autostash`; the stray
+  file was discarded by hand so the redo could land.
 - Master briefly did not start (the seed referenced a table a canceled task had created); a lead caught it
   from a red handoff and made FAB-50 "restore clean database startup". Nothing in the board checks that
   master runs after a merge.

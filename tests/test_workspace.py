@@ -46,6 +46,16 @@ def test_merge_brings_the_work_into_the_project(prepared: Workspace) -> None:
     assert not (prepared.factory / "work/FAB-1").exists()
 
 
+def test_uncommitted_files_in_the_project_neither_block_the_merge_nor_get_lost(prepared: Workspace) -> None:
+    work(prepared, "FAB-1", "app.py", "print('one')\n")
+    (prepared.workdir / "notes.md").write_text("a tester was here\n")  # testers run in the project itself
+
+    assert prepared.merge("FAB-1", "first task") is None
+
+    assert (prepared.workdir / "app.py").read_text() == "print('one')\n"
+    assert (prepared.workdir / "notes.md").read_text() == "a tester was here\n"
+
+
 def test_conflicting_work_comes_back_as_text(prepared: Workspace) -> None:
     work(prepared, "FAB-1", "app.py", "print('one')\n")
     work(prepared, "FAB-2", "app.py", "print('two')\n")
