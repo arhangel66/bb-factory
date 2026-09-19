@@ -10,9 +10,12 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
   parallel tasks into a chain of four copies (FAB-40 ← FAB-41 ← FAB-42 ← FAB-43): the copy waits on every
   code task in flight, and each of those conflicts in its turn. The redo costs the whole task again
   (10-15 minutes of a worker) for a conflict that a person resolves in a minute.
-- A canceled original reads as a broken dependency to the leads: twice a lead canceled and recreated its
-  downstream tasks (FAB-34/36/38/39 → FAB-44/47/48) although the board had already pointed them at the
-  copy. Eight of the fourteen cancellations so far are the leads' reaction to the six of the board.
+- A canceled original reads as a broken dependency to the leads: three times a lead canceled and recreated
+  its downstream tasks (FAB-34/36/38/39 → FAB-44/47/48, then FAB-49 at 00:28 with its tester already
+  started) although the board had already pointed them at the copy. Nine of the cancellations so far are
+  the leads' reaction to the seven of the board.
+- The first worker under the new prompt (FAB-57, 00:08) ran `git merge master` twice before it handed
+  off and merged clean in 12 minutes; the same task had cost 45 minutes and a conflict before.
 - The handoffs of canceled tasks carried real findings (FAB-36 red: board filters lose the session;
   FAB-38 yellow) and nobody read them.
 - The quarter-hour review is a rubber stamp: six wakes, six answers in three seconds ("no intervention is
