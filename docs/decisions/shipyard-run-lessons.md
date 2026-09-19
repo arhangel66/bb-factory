@@ -19,6 +19,16 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
   warranted"). The wake shows the planner only the top-level board — fifteen lines, four epics
   `in_progress` — not how long each epic has run, how many of its tasks are open, the conflicts and the
   cancellations since the last look, the time left. Nothing in it can look wrong.
+- A false red at 23:54: the goal says "Tailwind CSS from the CDN", the foundation worker wrote into
+  DESIGN.md "never fetch CSS from a third party at runtime", the tester of the board epic saw only
+  DESIGN.md and failed the epic on the CDN request. The lead filed "Remove runtime Tailwind dependency"
+  and a re-test that proves no third-party CSS; a worker is now rewriting every Tailwind class by hand.
+  Nobody could stop it: the planner has no channel to a lead, and a cancel by someone else does not wake
+  the task's owner — the lead would wait for a handoff that never comes.
+- The same worker spent its first minute reading twelve other threads' output through `bb thread output`
+  (the bb CLI is on its path); the tester could not drag a card (`bsk` has no drag, a synthetic
+  PointerEvent did not reach the card) and full-page screenshots failed — stage 3's "drag 10 of 10" has no
+  tester today.
 - Master briefly did not start (the seed referenced a table a canceled task had created); a lead caught it
   from a red handoff and made FAB-50 "restore clean database startup". Nothing in the board checks that
   master runs after a merge.
@@ -38,6 +48,17 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
       found: …") instead of being dropped
 - [ ] After every merge the board runs the project's check on master and, when it is red, creates a
       `code` task "master is broken after FAB-x" for the lead of that epic before anything else merges
+- [ ] The goal's hard constraints live in the project before the first worker starts (`AGENTS.md`, from
+      [green-handoff.md](green-handoff.md)): a worker's DESIGN.md cannot contradict them, a tester reads
+      them with its task. The planner's `ask`-free night goal should also say which external assets are
+      allowed by name
+- [ ] The planner can write to a lead (`tell_lead(epic, text)`, delivered as a wake with the epic's
+      floor), and a cancel by someone other than the owner wakes the owner with the reason
+- [ ] The worker's and the tester's `bb` is limited to what their tools need: no `bb thread output` of
+      other threads; the prompt says the task text is all there is
+- [ ] Drag for the tester: a recipe that works (`bsk evaluate` dispatching pointerdown/move/up on the card
+      and the target column, or a Python script over the app's own API as the fallback that is named as
+      such); without it every drag check is "not seen"
 - [ ] A review the planner can fail: the wake carries, per open epic, its age and its open/done/canceled
       task counts, the conflicts and cancellations since the last review, and the time left against the
       goal's deadline; the prompt asks for a verdict per epic, not a sentence for the whole, and lets the
