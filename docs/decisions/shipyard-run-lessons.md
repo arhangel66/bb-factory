@@ -15,6 +15,10 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
   copy. Eight of the fourteen cancellations so far are the leads' reaction to the six of the board.
 - The handoffs of canceled tasks carried real findings (FAB-36 red: board filters lose the session;
   FAB-38 yellow) and nobody read them.
+- The quarter-hour review is a rubber stamp: six wakes, six answers in three seconds ("no intervention is
+  warranted"). The wake shows the planner only the top-level board — fifteen lines, four epics
+  `in_progress` — not how long each epic has run, how many of its tasks are open, the conflicts and the
+  cancellations since the last look, the time left. Nothing in it can look wrong.
 - Master briefly did not start (the seed referenced a table a canceled task had created); a lead caught it
   from a red handoff and made FAB-50 "restore clean database startup". Nothing in the board checks that
   master runs after a merge.
@@ -34,6 +38,7 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
       found: …") instead of being dropped
 - [ ] After every merge the board runs the project's check on master and, when it is red, creates a
       `code` task "master is broken after FAB-x" for the lead of that epic before anything else merges
-- [ ] Time budget on the goal: the run had 8 hours and spent 1.5 on the foundation; the planner's review
-      should see the clock against the plan ("four epics still open at 23:50, five stages unstarted") and
-      be allowed to cut stages
+- [ ] A review the planner can fail: the wake carries, per open epic, its age and its open/done/canceled
+      task counts, the conflicts and cancellations since the last review, and the time left against the
+      goal's deadline; the prompt asks for a verdict per epic, not a sentence for the whole, and lets the
+      planner cut stages when the clock says so
