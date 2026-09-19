@@ -11,3 +11,4 @@ Plans in the order they were made; checkboxes show what was done.
 - [own-tracker.md](own-tracker.md) — the board owns the tasks: agents append intents, the board folds them; bb's tracker goes, its threads stay
 - [green-handoff.md](green-handoff.md) — a worker's handoff commits, merges master in and runs the project's check before it counts; created projects start with `AGENTS.md` and `docs/`
 - [instagram-run-lessons.md](instagram-run-lessons.md) — what the first big run taught: parallel by default, handoffs that teach, a brief with context, conflicts not marked done, a review every quarter hour, the board lingers after the report
+- [shipyard-run-lessons.md](shipyard-run-lessons.md) — what the night run shows while it runs: conflicts resolved instead of redone, files cut per area, canceled tasks that say where they went, master checked after every merge
