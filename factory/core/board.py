@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable
 
 from factory.core.workspace import Workspace
-from factory.roles import ROLE_BY_LABEL, AgentConfig, Config, Role, prompt
+from factory.roles import ROLE_BY_LABEL, AgentConfig, Config, Role, prompt, save_tools_by_role
 from factory.state import MESSAGES, RUN_FILE
 from factory.tools.bb import Tasks, Threads
 from factory.tools.messages import messages, write_message
@@ -56,6 +56,7 @@ class Board:
     def start(self, goal: str) -> None:
         # the goal is a message to the planner; the run is every task numbered from here on
         self.workspace.prepare()
+        save_tools_by_role()
         number = self.tasks.next_number()
         MESSAGES.write_text("")
         write_message("human", Role.planner, goal)

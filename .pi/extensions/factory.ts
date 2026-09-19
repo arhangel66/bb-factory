@@ -11,16 +11,10 @@ const FACTORY = join(realpathSync(".pi"), "..");
 // factory/core/board.py writes the run's first task number here; the board tool hides tasks of earlier runs
 const runStart = (): number => JSON.parse(readFileSync(join(FACTORY, "state/run.json"), "utf8")).number;
 const MESSAGES = join(FACTORY, "state/messages.jsonl"); // the planner's report goes here; factory/core/board.py ends the run on it
+// {role: [tool]}, factory/roles/__init__.py writes it at the start of a run: which of the tools below each role may call
+const toolsByRole = (): Record<string, string[]> => JSON.parse(readFileSync(join(FACTORY, "state/roles.json"), "utf8"));
 
 // the thread title is "<prompt> [<task>] <model>": the first word is the role, a lead's second word is its epic
-const ROLE_TOOLS: Record<string, string[]> = {
-  planner: ["create_task", "update_task", "board", "show_task", "report"],
-  lead: ["create_task", "update_task", "board", "show_task", "handoff"],
-  secretary: ["contact_human", "tell_planner", "handoff"],
-  imitator: ["handoff"],
-  worker: ["read", "bash", "edit", "write", "grep", "find", "ls", "handoff"],
-  tester: ["read", "bash", "edit", "write", "grep", "find", "ls", "handoff"],
-};
 let role = "";
 let epic = { key: "", id: "" }; // a lead's floor: its tasks get this parent, its board shows only them
 
@@ -31,7 +25,8 @@ export default function (pi: ExtensionAPI) {
     const r = await pi.exec("bb", ["thread", "show", id, "--json"], { timeout: 30000 });
     const words: string[] = JSON.parse(r.stdout).thread?.title?.split(" ") ?? [];
     role = words[0];
-    if (ROLE_TOOLS[role]) pi.setActiveTools(ROLE_TOOLS[role]);
+    const tools = toolsByRole()[role];
+    if (tools) pi.setActiveTools(tools);
     if (role === "lead") epic = { key: words[1], id: (await bb(["show", words[1]])).task.id };
   });
 

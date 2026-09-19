@@ -1,9 +1,12 @@
 """Who the agents are: the roles, the task labels that call for them, their prompts, and how a run staffs them."""
 
+import json
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import Literal
+
+from factory.state import ROLES
 
 PROMPTS = Path(__file__).parent / "prompts"
 
@@ -22,6 +25,17 @@ class Role(StrEnum):
 ROLE_BY_LABEL = {"code": Role.worker, "test": Role.tester, "epic": Role.lead, "ask": Role.secretary}
 LABEL_BY_ROLE = {role: label for label, role in ROLE_BY_LABEL.items()}
 
+# the tools of .pi/extensions/factory.ts each role may call; anything else pi has is switched off for it
+CODING_TOOLS = ("read", "bash", "edit", "write", "grep", "find", "ls")
+TOOLS_BY_ROLE: dict[Role, tuple[str, ...]] = {
+    Role.planner: ("create_task", "update_task", "board", "show_task", "report"),
+    Role.lead: ("create_task", "update_task", "board", "show_task", "handoff"),
+    Role.worker: (*CODING_TOOLS, "handoff"),
+    Role.tester: (*CODING_TOOLS, "handoff"),
+    Role.secretary: ("contact_human", "tell_planner", "handoff"),
+    Role.imitator: ("handoff",),
+}
+
 
 @dataclass(frozen=True)
 class AgentConfig:
@@ -36,3 +50,8 @@ Config = dict[Role, AgentConfig]
 
 def prompt(name: str, **fields: str) -> str:
     return (PROMPTS / f"{name}.md").read_text().format(**fields)
+
+
+def save_tools_by_role() -> None:
+    # the extension reads it at every thread's start by the first word of the thread's title
+    ROLES.write_text(json.dumps({role: list(tools) for role, tools in TOOLS_BY_ROLE.items()}, indent=2))

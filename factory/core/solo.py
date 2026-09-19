@@ -8,7 +8,7 @@ from pathlib import Path
 
 from factory.core.board import log
 from factory.core.workspace import Workspace
-from factory.roles import LABEL_BY_ROLE, Role, prompt
+from factory.roles import LABEL_BY_ROLE, Role, prompt, save_tools_by_role
 from factory.state import MESSAGES
 from factory.tools.bb import PROJECT, Tasks, Threads, bb
 from factory.tools.messages import messages
@@ -26,6 +26,7 @@ def run_agent_on_one_task(role: Role, title: str, description: str, workdir: Pat
     label = label or LABEL_BY_ROLE[role]  # the imitator plays whatever role its task needs, so it names its own
     tasks, threads, workspace = Tasks(), Threads(), Workspace(workdir)
     workspace.prepare()
+    save_tools_by_role()
     if not MESSAGES.exists():
         MESSAGES.write_text("")
     messages_before = len(messages())
