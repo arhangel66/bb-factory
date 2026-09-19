@@ -182,14 +182,43 @@ def test_a_crashed_board_archives_every_agent_it_spawned(board: Board, monkeypat
     monkeypatch.setattr(board, "start", lambda goal: None)
 
     def crash() -> bool:
-        raise RuntimeError("bb is down")
+        raise KeyError("a bug, not an outage")
     monkeypatch.setattr(board, "tick", crash)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(KeyError):
         board.run("goal")
 
     assert sorted(board.threads.archived) == ["thr_1", PLANNER]
     assert board.alive == set()
+
+
+def test_a_network_outage_is_retried_before_the_run_gives_up(board: Board, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(board, "start", lambda goal: None)
+    monkeypatch.setattr(board_module.time, "sleep", lambda seconds: None)
+    ticks = iter([RuntimeError("bb: fetch failed"), OSError("no route to host"), False])
+
+    def flaky() -> bool:
+        outcome = next(ticks)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+    monkeypatch.setattr(board, "tick", flaky)
+
+    board.run("goal")  # two failing ticks, then a normal end: no exception
+
+    assert next(ticks, "spent") == "spent"
+
+
+def test_an_outage_longer_than_the_limit_ends_the_run(board: Board, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(board, "start", lambda goal: None)
+    monkeypatch.setattr(board_module, "OUTAGE", board_module.timedelta(seconds=0))
+
+    def down() -> bool:
+        raise OSError("no route to host")
+    monkeypatch.setattr(board, "tick", down)
+
+    with pytest.raises(OSError):
+        board.run("goal")
 
 
 def test_a_stray_planner_of_an_earlier_run_creates_nothing(board: Board) -> None:

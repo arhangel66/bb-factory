@@ -1,9 +1,11 @@
 """The board: the agents ask through intents, the board folds them, hands tasks out and brings the handoffs back."""
 
 import json
+import subprocess
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.error import URLError
 
 from factory.core.events import HUMAN, agent as agent_of_thread, emit
 from factory.core.tracker import Tracker
@@ -16,6 +18,8 @@ from factory.tools.telegram import Telegram
 
 TICK = timedelta(seconds=10)
 REVIEW = timedelta(minutes=15)  # how often the planner is asked to look at the whole
+OUTAGE = timedelta(minutes=5)  # how long the network or bb may fail before the run gives up
+TRANSIENT = (URLError, OSError, RuntimeError, subprocess.TimeoutExpired)  # what a tick may hit and the next may not
 COLOR = {"ok": "green", "warning": "yellow", "failed": "red"}
 
 
@@ -289,12 +293,24 @@ class Board:
         self.serve()
 
     def serve(self) -> None:
+        # tick until the run is over; a failing network or bb is retried for a while, not fatal at once
+        failing_since: datetime | None = None
         try:
-            while self.tick():
+            while True:
+                try:
+                    going = self.tick()
+                    failing_since = None
+                except TRANSIENT as error:
+                    failing_since = failing_since or datetime.now()
+                    if datetime.now() - failing_since > OUTAGE:
+                        raise
+                    log(f"tick failed, retrying: {error}")
+                    going = True
                 self.tracker.save()
                 EVENTS.touch()  # a quiet tick still tells the ui the run is alive
+                if not going:
+                    break
                 time.sleep(TICK.seconds)
-            self.tracker.save()
         finally:
             # a board that is interrupted or crashes leaves no agent behind: a stray planner would keep
             # writing intents into whatever run state/current points at next
