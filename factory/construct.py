@@ -138,16 +138,24 @@ app with its starter, build, run, test and drive it the way its docs say, and co
 into this project's. What the kit lacks is fixed in the kit — a task that works in that repository and
 commits there — never worked around here; the report says what the kit gained.
 
-Input: `content/` holds the meditations as mp3 files — one today, `meditation_small.mp3`, 92 minutes, no
-tags; more will come. The look to match is in `docs/reference/`: Practico, two screens, described there.
-The audio is most likely Russian; the app speaks Russian, the code and the docs English.
+Input: `content/` holds the meditations as mp3 files, one meditation per file — one today,
+`meditation_small.mp3`, 92 minutes, no tags; more will come. The look to match is in `docs/reference/`:
+Practico, two screens, described there. The audio is Russian; the app speaks Russian, the code and the
+docs English.
 
 Product:
 1. Catalog: every mp3 in `content/` is a meditation with a title, a one-line description, a duration and an
    icon. The title and the description come from the audio itself: transcribe its first minutes locally
-   (Apple's Speech framework from a Swift script, whisper.cpp from brew, whatever is quickest; the Mac has
-   ffmpeg) and name it as a person would — a file name is never a title. The catalog is a file in the repo
-   a person can edit; entries for new files are drafted by one command and reviewed by hand.
+   and name it as a person would — a file name is never a title. Local transcription is already on this
+   Mac, read-only: Mikhail's app Beseda at /Users/mikhail/w/learning/beseda does it through transcribe.cpp
+   (handy-computer/transcribe.cpp; the Swift wrapper is `Vendor/TranscribeCpp`, the xcframework is in
+   `Package.swift`, the models it downloaded are in `~/Library/Application Support/Beseda/runtime/models/`:
+   `gigaam-v3-e2e-rnnt-Q8_0.gguf` for Russian, `parakeet-tdt-0.6b-v3-Q4_K_M.gguf`), and before that through
+   `parakeet-mlx` with `mlx-community/parakeet-tdt-0.6b-v3` from the Hugging Face cache; its
+   `docs/asr-bakeoff.md`, `docs/speech-model-choice-plan.md` and `untracked/scripts/asr-bench/` say how
+   and how fast. Take the quickest of these for a script of this project's own; the Mac has ffmpeg for the
+   16 kHz mono WAV they want. The catalog is a file in the repo a person can edit; entries for new files
+   are drafted by one command and reviewed by hand.
 2. Icons: one per meditation, one family like the reference — a round ring with a green-to-blue gradient and
    a simple line glyph that fits the meditation; SF Symbols or vector drawn in code, no raster images.
 3. Screens: the list (sections, rows like the reference, a checkmark on what was completed today); quick
