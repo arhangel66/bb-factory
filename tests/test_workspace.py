@@ -104,3 +104,13 @@ def test_drop_throws_the_work_away(prepared: Workspace) -> None:
 
     assert not (prepared.factory / "work/FAB-1").exists()
     assert not (prepared.workdir / "app.py").exists()
+
+
+def test_a_directory_left_where_a_worktree_goes_does_not_block_it(prepared: Workspace) -> None:
+    stale = prepared.factory / "work/FAB-7"
+    stale.mkdir(parents=True)
+    (stale / "check.sh").write_text("left by an agent whose board is gone")
+
+    path = prepared.worktree("FAB-7")
+
+    assert path == stale and (path / ".git").exists() and not (path / "check.sh").exists()

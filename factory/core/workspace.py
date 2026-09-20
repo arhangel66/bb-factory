@@ -1,6 +1,7 @@
 """The run's project: a git repo the workers branch off, one worktree per task, under .factory/."""
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -57,6 +58,8 @@ class Workspace:
     def worktree(self, key: str) -> Path:
         # a branch of its own per task, reset when the task comes back after a conflict
         path = self.factory / "work" / key
+        if path.exists() and not (path / ".git").exists():
+            shutil.rmtree(path)  # an agent of a run before, dead board and all, kept writing where its worktree was
         git(self.workdir, "worktree", "add", "-B", key, str(path))
         return self.with_tools(path)
 
