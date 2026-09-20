@@ -153,9 +153,14 @@ Product:
    `gigaam-v3-e2e-rnnt-Q8_0.gguf` for Russian, `parakeet-tdt-0.6b-v3-Q4_K_M.gguf`), and before that through
    `parakeet-mlx` with `mlx-community/parakeet-tdt-0.6b-v3` from the Hugging Face cache; its
    `docs/asr-bakeoff.md`, `docs/speech-model-choice-plan.md` and `untracked/scripts/asr-bench/` say how
-   and how fast. Take the quickest of these for a script of this project's own; the Mac has ffmpeg for the
-   16 kHz mono WAV they want. The catalog is a file in the repo a person can edit; entries for new files
-   are drafted by one command and reviewed by hand.
+   and how fast. This works today, 150 s of audio in 12 s (tried on 2026-09-20):
+   ffmpeg -y -i content/<file>.mp3 -t 150 -ac 1 -ar 16000 -sample_fmt s16 /tmp/first.wav
+   /Users/mikhail/w/learning/beseda/untracked/scripts/asr-bench/transcribe.cpp/build/bin/transcribe-cli \\
+     -m "$HOME/Library/Application Support/Beseda/runtime/models/gigaam-v3-e2e-rnnt-Q8_0.gguf" -l ru -q \\
+     -o /tmp/first.txt /tmp/first.wav
+   Wrap it in a script of this project's own; if the binary is to be relied on, copy it and the model into
+   the project or say in the README where they come from. The catalog is a file in the repo a person can
+   edit; entries for new files are drafted by one command and reviewed by hand.
 2. Icons: one per meditation, one family like the reference — a round ring with a green-to-blue gradient and
    a simple line glyph that fits the meditation; SF Symbols or vector drawn in code, no raster images.
 3. Screens: the list (sections, rows like the reference, a checkmark on what was completed today); quick
