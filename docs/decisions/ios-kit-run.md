@@ -62,9 +62,10 @@ a rebuild with a new set of files, and the look of Practico (two screenshots). T
 `construct.py`; the project `~/w/learning/meditate` is seeded with `AGENTS.md` (the kit is the way),
 `docs/reference/` with the screenshots described, and `content/meditation_small.mp3`.
 
-- [ ] When the kit run reports: stop its board (SIGTERM), archive every thread of the run, switch
-  `construct.py` to `run(meditate, …)`, launch. The kit's report says whether the kit is usable at all;
-  if it is not, the meditation run waits.
+- [x] The run reported green at 12:37 on 2026-09-20, six hours in: a fresh clone generates a project,
+  builds, tests and drives it; 28 tasks, the last one a recheck from a real fresh clone. Its board was
+  stopped, the planner and the secretary archived, `construct.py` switched to `run(meditate, …, kit=IOS)`
+  and the meditation run started at 12:40 as `2026-09-20-124012`.
 
 ## After the run
 

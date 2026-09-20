@@ -68,9 +68,10 @@ secretary --contact_human(text, wait_minutes, files)--> messages.jsonl --board t
 - [x] `factory/roles/prompts/secretary.md`: his voice as `(voice) …` may be misheard, ask about the
   word; a file as `(file: /path)`, pass the path on; screenshots and mockups go as `files`.
 - [x] `docs/architecture/overview.md`: the `telegram.py` and `voice.py` lines.
-- [ ] Live check with Mikhail's phone, on the first board that runs this code (the ios-kit board of
-  2026-09-20 runs the old one and would eat the updates): one voice message, one photo, one picture
-  back. Recorded here without quoting the transcript.
+- [x] Live on the resumed ios-kit board of 2026-09-20, which runs this code: at 08:44 a voice message
+  of Mikhail's reached the secretary as `(voice) …` and was answered in the same minute, and at 12:38 the
+  secretary's own report carried four files — a 4.6 MB mp4 as a document and three PNGs as pictures —
+  which reached his Telegram without a line in the log. A file *from* him is the one shape still untried.
 
 ## Not done
 

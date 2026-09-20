@@ -190,6 +190,6 @@ Product:
 Stack: SwiftUI, AVFoundation, HealthKit, iOS 26, no third-party packages. Mikhail is reachable through the
 secretary but slow to answer: decide yourself where you can.
 """
-    # run(task, power_real, Path.home() / "w/learning/ios-kit", slots=4)  # 06:31, four slots proved too few
-    # run(meditate, power_real, Path.home() / "w/learning/meditate", slots=10, kit=IOS)  # after the ios-kit board is stopped
-    resume(power_real, slots=10)  # the ios-kit run of 06:31, its board stopped at 07:52 to lift the slots from 4
+    # run(task, power_real, Path.home() / "w/learning/ios-kit", slots=4)  # 06:31, reported green at 12:37, the kit is built
+    run(meditate, power_real, Path.home() / "w/learning/meditate", slots=10, kit=IOS)
+    # resume(power_real, slots=10)  # the run state/current points at, when its board is gone

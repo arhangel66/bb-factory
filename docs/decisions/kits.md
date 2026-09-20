@@ -75,5 +75,7 @@ into `IOS.brief`; the goal keeps the product: the content, the design gate, the 
 - [x] `construct.py`: `meditate` shortened, `run(meditate, power_real, …, slots=10, kit=IOS)`.
 - [x] `docs/architecture/overview.md`: kits; `~/w/learning/meditate/AGENTS.md` loses the hand-written
   kit paragraph (the seed writes it).
-- [ ] The ios-kit run's report lands; the kit's `docs/index.md` and skills are what they are; launch
-  Meditate on `kit=IOS` and watch the first worker use the starter without being told twice.
+- [x] Launched: the meditation run of 2026-09-20 12:40 named `kit=IOS` and the seeding did the rest —
+  `seeded with the ios kit` (1bbbc77) copied the kit's nine skills into `.agents/skills/`, linked
+  `.claude/skills` and appended the `## Kit` section to `AGENTS.md`, before the planner existed. Whether
+  the first worker uses the starter without being told twice is what the run itself shows.
