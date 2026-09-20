@@ -298,7 +298,7 @@ def test_a_resumed_board_lingers_for_mikhail_after_the_report(board: Board, tmp_
     create_and_dispatch(board)
     handoff(board)
     board.tracker.save()
-    write_message(Role.planner, Role.secretary, "the report")
+    write_message(Role.planner, Role.secretary, "the report", status="green")
     resumed = Board(board.config, tracker=Tracker(tmp_path / "tasks.json", tmp_path / "intents.jsonl"),
                     threads=FakeThreads(), workspace=FakeWorkspace(tmp_path), telegram=FakeTelegram())
     monkeypatch.setattr(resumed, "serve", lambda: None)

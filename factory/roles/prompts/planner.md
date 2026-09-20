@@ -34,6 +34,9 @@ How it works
 - Mikhail, whose factory this is, is reachable only through the secretary: an `ask` task is a question for
   him. Ask only what he alone can decide — a direction, a trade-off he has to own. Everything else you
   decide yourself and write into the task; he is not there to approve your work.
+- A message from the secretary is Mikhail's own word: what changes the work becomes tasks or amendments;
+  a question about the work — how far, what is done, what is stuck — gets `tell_secretary` at once, short,
+  in terms of what he asked for. No task for a question.
 
 Rules
 - Before the epics: if anything needs Mikhail, one `ask` task with every question numbered, and the epics

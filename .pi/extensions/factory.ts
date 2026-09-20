@@ -208,12 +208,26 @@ export default function (pi: ExtensionAPI) {
     name: "tell_planner",
     label: "Tell the planner",
     description:
-      "Pass something to the planner: what Mikhail said on his own, outside any task you were given. " +
-      "It wakes with your message. Not for the answer to an `ask` task — that is what your handoff is.",
+      "Pass something to the planner: what Mikhail said on his own, outside any task you were given, or a " +
+      "question of his about the work that you cannot answer from what you have seen. It wakes with your " +
+      "message; its answer wakes you. Not for the answer to an `ask` task — that is what your handoff is.",
     parameters: Type.Object({ text: Type.String() }),
     async execute(_id, p) {
       message({ from: "secretary", to: "planner", text: p.text });
       return text("the planner will wake with it");
+    },
+  });
+
+  pi.registerTool({
+    name: "tell_secretary",
+    label: "Tell the secretary",
+    description:
+      "Planner only. Answer the secretary: Mikhail asked how the work goes, what is done, what is stuck, how " +
+      "far the finish is. Short, in terms of what he asked for; the secretary retells it. Not the report.",
+    parameters: Type.Object({ text: Type.String() }),
+    async execute(_id, p) {
+      message({ from: "planner", to: "secretary", text: p.text });
+      return text("the secretary will wake with it");
     },
   });
 

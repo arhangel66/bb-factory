@@ -59,7 +59,7 @@ Two kinds, do not confuse them:
 
 - **The agents' tools** — `.pi/extensions/factory.ts`, loaded by pi from `.pi/` in the agent's directory
   (a symlink back to the factory). `create_task`, `amend_task`, `cancel_task`, `set_priority`, `board`,
-  `show_task`, `handoff`, `contact_human`, `tell_planner`, `report`. They read `tasks.json` and append to `intents.jsonl`
+  `show_task`, `handoff`, `contact_human`, `tell_planner`, `tell_secretary`, `report`. They read `tasks.json` and append to `intents.jsonl`
   and `messages.jsonl`; none of them changes a task. `TOOLS_BY_ROLE` in `factory/roles/` says which role
   gets which; the board writes it to `state/roles.json` and the extension reads it when a thread starts.
 - **Skills by role** — `.agents/skills/` is the factory's store (`npx skills add … -a universal`,

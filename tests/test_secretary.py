@@ -112,3 +112,13 @@ def test_what_mikhail_says_on_his_own_can_reach_the_planner(board: Board) -> Non
 
     assert board.threads.told == [(PLANNER, board.threads.told[0][1])]
     assert "without Tailwind" in board.threads.told[0][1]
+
+
+def test_the_planners_answer_wakes_the_secretary_and_the_run_goes_on(board: Board) -> None:
+    write_message("planner", "secretary", "the foundation is merged, the app is next")
+
+    board.deliver()
+
+    assert board.threads.told == [(SECRETARY, board.threads.told[0][1])]
+    assert "foundation is merged" in board.threads.told[0][1]
+    assert board.reported() is False

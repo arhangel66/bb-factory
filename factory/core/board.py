@@ -284,7 +284,8 @@ class Board:
         return bool(undelivered)
 
     def reported(self) -> bool:
-        return any(m["from"] == Role.planner and m["to"] == Role.secretary for m in messages())
+        # the report is the planner's message with a verdict; its answers to the secretary have none
+        return any(m["from"] == Role.planner and m["to"] == Role.secretary and m["status"] for m in messages())
 
     def tick(self) -> bool:
         # one pass; False when Mikhail has the report or an agent is dead
