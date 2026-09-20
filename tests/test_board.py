@@ -157,6 +157,24 @@ def test_a_task_goes_to_one_worker_once(board: Board) -> None:
     assert board.tracker.tasks["FAB-1"]["status"] == "in_progress"
 
 
+def test_one_shared_agent_written_out_per_role_is_still_one_thread(board: Board) -> None:
+    # construct.py assembles each config where it is read, so the imitator is spelled out once per role it
+    # plays. AgentConfig is frozen: the equal values are one key in `shared`, and its story stays in one thread
+    for role in (Role.worker, Role.tester):
+        board.config[role] = AgentConfig(prompt=Role.imitator, model=Model.gpt_5_6_terra,
+                                         thinking=Thinking.low, mode="shared")
+    write_intent(PLANNER, "create", key="FAB-1", type="code", title="do it", description="## Motivation\nbecause",
+                 priority="high", blocked_by=[], parent=None)
+    write_intent(PLANNER, "create", key="FAB-2", type="test", title="check it", description="## Motivation\nbecause",
+                 priority="high", blocked_by=[], parent=None)
+    board.fold()
+
+    board.dispatch_ready()
+
+    assert board.threads.spawned == ["imitator openai-codex/gpt-5.6-terra"]
+    assert board.tracker.tasks["FAB-2"]["thread"] == board.tracker.tasks["FAB-1"]["thread"]
+
+
 def test_a_handoff_brings_the_work_home_and_wakes_the_planner(board: Board) -> None:
     create_and_dispatch(board)
 
