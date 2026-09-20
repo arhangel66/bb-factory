@@ -29,6 +29,23 @@ report by 12:00.
   ignores SIGINT (the shell starts background jobs that way): it is stopped with SIGTERM and its planner
   and secretary are archived by hand, `bb thread archive <id>` from `run.json`.
 
+## Restarted from scratch
+
+The first run (`2026-09-20-061620`) died with the session that started it, one task in. Mikhail asked
+for a clean restart with what he had lying around and with a stronger crew:
+
+- [x] `docs/prior-art.md` in the kit: GymBuddy (`~/w/gymbuddy`) and VoicePen (`~/w/learning/voicepen`)
+  — build and run scripts, an XCUITest layer with helpers, three iOS skills already installed, a widget
+  install workaround; the goal says to read it first and judge those skills like any other.
+- [x] The goal made research first: at least two ways tried and measured for each part (project
+  generation, build and run, test output, driving the app, skills), verdicts with numbers in `docs/`,
+  what was rejected uninstalled. Report by 13:00.
+- [x] `power_real` in `construct.py`: planner GPT-6 Astra high, leads GPT-5.6 Sol high, tester Kimi K3
+  medium (its highest is high), workers GPT-5.6 Luna high, secretary as before.
+- [x] The kit reset to its seed commits, the dead run's threads archived, its worktree, `.factory/` and
+  run directory removed. A test touches `state/current/events.jsonl`, so the link must point at a run
+  that exists: it did not after the removal, and one test failed until it was re-pointed.
+
 ## After the run
 
 - [ ] Lessons into `shipyard-run-lessons.md` or a file of their own: what the planner did with a tester it
