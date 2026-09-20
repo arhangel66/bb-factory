@@ -161,8 +161,12 @@ Product:
    Wrap it in a script of this project's own; if the binary is to be relied on, copy it and the model into
    the project or say in the README where they come from. The catalog is a file in the repo a person can
    edit; entries for new files are drafted by one command and reviewed by hand.
-2. Icons: one per meditation, one family like the reference — a round ring with a green-to-blue gradient and
-   a simple line glyph that fits the meditation; SF Symbols or vector drawn in code, no raster images.
+2. Icons: one per meditation and the app icon, one family like the reference — a round ring with a
+   green-to-blue gradient and a simple glyph that fits the meditation. The agents on the openai-codex
+   models generate images through OpenAI image generation, and Mikhail checked that it works from here:
+   make several variants of the family and of each icon, look at them next to the reference, keep the
+   best, and write the choice and the rejected variants into `docs/` with a line of why. Raster in the
+   asset catalog is fine; a vector drawn in code is fine too if it looks better.
 3. Screens: the list (sections, rows like the reference, a checkmark on what was completed today); quick
    search that filters as you type; favorites — a heart on a row and a view of them; the player — a
    full-screen gradient, the ring with progress and the play button, the time left, scrubbing, volume;
