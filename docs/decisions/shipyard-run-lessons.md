@@ -34,6 +34,12 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
   (the bb CLI is on its path); the tester could not drag a card (`bsk` has no drag, a synthetic
   PointerEvent did not reach the card) and full-page screenshots failed — stage 3's "drag 10 of 10" has no
   tester today.
+- The planner never restated a check its tester could not run. It learned of the missing drag at 03:57,
+  from stage 3's epic handoff (it sees no tester handoffs and knows no tool); stages 4 and 5 were already on
+  the board since 00:17, each with "a residual in KNOWN_ISSUES.md is a failed gate" copied from the goal,
+  and a task is never edited. Two reviews and one new epic (FAB-140 at 05:20) went by with the gate as it
+  was: the goal named KNOWN_ISSUES.md as the outlet for what fails, so the planner kept the requirement
+  and recorded it as unverified — the literal reading, and the one its prompt asks for.
 - The seventh conflict at 00:08 was add/add on `app/migrations/0003_demo_workspace.sql`: two parallel tasks
   numbered their migration 0003. It cost the realtime transport (45 minutes of a worker) and put five
   tasks behind its copy.
@@ -107,6 +113,9 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
 - [ ] Drag for the tester: a recipe that works (`bsk evaluate` dispatching pointerdown/move/up on the card
       and the target column, or a Python script over the app's own API as the fallback that is named as
       such); without it every drag check is "not seen"
+- [ ] The planner knows what its testers can do (the tester's tools and their limits, in the planner prompt
+      or the review wake) and is told that a check no tester can run is a planning fault: restate the gate,
+      give the check to a worker as a code test, or drop it and say so — never leave it red
 - [ ] The lead and the planner prompts give the exact relative path to the project's `docs/` from where
       each of them sits; the review wake names the docs pages changed since the last look, so the planner
       opens what moved instead of the index
