@@ -7,3 +7,7 @@ __pycache__/
 .DS_Store
 untracked/
 .serena/
+
+# Mikhail's global gitignore hides these; in this repository they are the work
+!AGENTS.md
+!**/AGENTS.md
