@@ -46,6 +46,13 @@ for a clean restart with what he had lying around and with a stronger crew:
   run directory removed. A test touches `state/current/events.jsonl`, so the link must point at a run
   that exists: it did not after the removal, and one test failed until it was re-pointed.
 
+- [x] Second restart. The run of 06:23 crashed on its first dispatch: `git worktree add` found
+  `.factory/work/FAB-1` already there. The worker of the false start had never been archived — only the
+  planner and the secretary were — and kept working, board or no board, writing into the directory even
+  after it was deleted. `Workspace.worktree()` now removes a directory that is not a worktree before it
+  adds one; the stray worker is archived; and when a board is stopped by hand, every thread in
+  `tasks.json` is archived too, not just the two in `run.json`.
+
 ## After the run
 
 - [ ] Lessons into `shipyard-run-lessons.md` or a file of their own: what the planner did with a tester it
