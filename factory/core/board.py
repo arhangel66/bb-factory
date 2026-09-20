@@ -315,7 +315,9 @@ class Board:
             sender_thread = {Role.secretary: self.secretary, Role.planner: self.planner}.get(m["from"])
             emit(self.agents.get(sender_thread, HUMAN), "message", "sent", m["to"], m["text"], m["status"])
             if m["to"] == "human":
-                self.telegram.send(m["text"], m.get("files") or [])
+                for failure in self.telegram.send(m["text"], m.get("files") or []):
+                    log(f"a file did not reach Mikhail: {failure}")
+                    self.since_review.append(f"a file the {m['from']} sent Mikhail did not reach him: {failure}")
                 wait = m.get("wait_minutes") or 0
                 self.waiting = datetime.now() + timedelta(minutes=wait) if wait else None
             else:

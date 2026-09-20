@@ -19,10 +19,12 @@ class FakeTelegram:
         self.sent: list[str] = []
         self.files: list[str] = []
         self.incoming = list(incoming)
+        self.unsendable: list[str] = []  # what the bot refuses, as a screenshot in a dropped worktree is
 
-    def send(self, text: str, files: list[str] = ()) -> None:
+    def send(self, text: str, files: list[str] = ()) -> list[str]:
         self.sent.append(text)
         self.files.extend(files)
+        return [f"telegram sendPhoto {f}: no such file" for f in files if f in self.unsendable]
 
     def replies(self) -> list[str]:
         return [self.incoming.pop(0)] if self.incoming else []
@@ -78,6 +80,22 @@ def test_files_go_to_mikhail_with_the_text(board: Board) -> None:
 
     assert board.telegram.sent == ["Three looks, which one?"]
     assert board.telegram.files == ["/tmp/a.png", "/tmp/b.png"]
+
+
+def test_a_file_that_will_not_send_does_not_stop_the_run_or_resend_the_text(board: Board) -> None:
+    # the screenshot lived in a worktree the board had already dropped, and the send of it must not be retried
+    board.telegram.unsendable = ["/tmp/gone.png"]
+    message = {"at": datetime.now().astimezone().isoformat(), "from": "secretary", "to": "human",
+               "text": "Here is how it looks", "files": ["/tmp/gone.png"], "status": None}
+    with module.MESSAGES.open("a") as file:
+        file.write(json.dumps(message) + "\n")
+
+    board.deliver()
+    board.deliver()
+
+    assert board.telegram.sent == ["Here is how it looks"]
+    assert board.since_review == ["a file the secretary sent Mikhail did not reach him: "
+                                  "telegram sendPhoto /tmp/gone.png: no such file"]
 
 
 def test_his_answer_wakes_the_secretary(board: Board) -> None:

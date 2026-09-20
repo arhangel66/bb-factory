@@ -42,14 +42,21 @@ class Telegram:
     def state(self) -> dict:
         return json.loads(self.settings.read_text()) if self.settings.exists() else {"chat": None, "who": "", "offset": 0}
 
-    def send(self, text: str, files: list[str] = ()) -> None:
+    def send(self, text: str, files: list[str] = ()) -> list[str]:
+        # the files that would not go, so the caller can say so: the text is sent once and a picture that
+        # cannot be uploaded never makes the message worth sending again
         state = self.state()
         if not state["chat"]:
             raise RuntimeError(f"nobody has written to the bot yet, so {self.settings} has no chat to send to")
         if text:
             self.call("sendMessage", chat_id=state["chat"], text=text)
+        failed = []
         for file in files:
-            self.upload(state["chat"], Path(file))
+            try:
+                self.upload(state["chat"], Path(file))
+            except (RuntimeError, OSError, subprocess.SubprocessError, json.JSONDecodeError) as error:
+                failed.append(str(error))
+        return failed
 
     def upload(self, chat: str, file: Path) -> None:
         # curl: urllib has no multipart

@@ -72,8 +72,8 @@ class FakeTelegram:
     def replies(self) -> list[str]:
         return []
 
-    def send(self, text: str, files: list[str] = ()) -> None:
-        pass
+    def send(self, text: str, files: list[str] = ()) -> list[str]:
+        return []
 
 
 class FakeWorkspace:
