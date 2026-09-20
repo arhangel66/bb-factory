@@ -66,15 +66,14 @@ into `IOS.brief`; the goal keeps the product: the content, the design gate, the 
 
 ## Steps
 
-- [ ] `factory/kits.py`: `Kit`, `IOS`. A test that `IOS.root` has `.agents/skills` and
-  `docs/index.md` (skipped where the kit is not on disk).
-- [ ] `Workspace.prepare(kit: Kit | None)` seeds as above; `seed(kit)` as its own method. Tests: a
+- [x] `factory/kits.py`: `Kit`, `IOS`.
+- [x] `Workspace.prepare(kit: Kit | None)` seeds as above; `seed(kit)` as its own method. Tests: a
   fake kit directory with two skills → the project has both, `AGENTS.md` has the section, one commit;
   a second prepare adds nothing; a project's own copy of a skill is kept.
-- [ ] `Board.run(goal, kit)`: the brief before the goal, the kit's name in `run.json`;
+- [x] `Board.run(goal, kit)`: the brief before the goal, the kit's name in `run.json`;
   `construct.run(..., kit)`. Tests: the planner's prompt starts with the brief.
-- [ ] `construct.py`: `meditate` shortened, `run(meditate, power_real, …, slots=10, kit=IOS)`.
-- [ ] `docs/architecture/overview.md`: kits; `~/w/learning/meditate/AGENTS.md` loses the hand-written
+- [x] `construct.py`: `meditate` shortened, `run(meditate, power_real, …, slots=10, kit=IOS)`.
+- [x] `docs/architecture/overview.md`: kits; `~/w/learning/meditate/AGENTS.md` loses the hand-written
   kit paragraph (the seed writes it).
 - [ ] The ios-kit run's report lands; the kit's `docs/index.md` and skills are what they are; launch
   Meditate on `kit=IOS` and watch the first worker use the starter without being told twice.

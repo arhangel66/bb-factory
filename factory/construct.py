@@ -4,6 +4,7 @@ from pathlib import Path
 from factory.core.board import Board
 from factory.core.tracker import Tracker
 from factory.core.workspace import Workspace
+from factory.kits import IOS, Kit
 from factory.roles import AgentConfig, Config, Model, Role, Thinking
 from factory.state import RUN_FILE
 from factory.tools.bb import Threads
@@ -30,10 +31,11 @@ LEAD_POWER = AgentConfig(prompt=Role.lead, model=Model.gpt_5_6_sol, thinking=Thi
 TESTER_POWER = AgentConfig(prompt=Role.tester, model=Model.kimi_k3, thinking=Thinking.medium)
 
 
-def run(goal: str, config: Config, workdir: Path, slots: int) -> None:
-    # linger: after the report the planner and the secretary stay, Mikhail talks to the run in Telegram until Ctrl-C
+def run(goal: str, config: Config, workdir: Path, slots: int, kit: Kit | None = None) -> None:
+    # linger: after the report the planner and the secretary stay, Mikhail talks to the run in Telegram until Ctrl-C;
+    # kit: the project is seeded with its skills and the planner hears its brief before the goal
     Board(config, tracker=Tracker(), threads=Threads(), workspace=Workspace(workdir), telegram=Telegram(voice=Voice()),
-          slots=slots, linger=True).run(goal)
+          slots=slots, linger=True).run(goal, kit)
 
 
 def resume(config: Config, slots: int) -> None:
@@ -134,11 +136,6 @@ secretary but slow to answer: decide yourself where you can.
 Build "Meditate": an iOS app for Mikhail's iPhone that plays his guided meditations. Report by 20:00 today;
 an honest partial report beats a late one.
 
-Use ios-kit at /Users/mikhail/w/learning/ios-kit for everything: read its `docs/index.md` first, make the
-app with its starter, build, run, test and drive it the way its docs say, and copy its `.agents/skills/`
-into this project's. What the kit lacks is fixed in the kit — a task that works in that repository and
-commits there — never worked around here; the report says what the kit gained.
-
 Input: `content/` holds the meditations as mp3 files, one meditation per file — one today,
 `meditation_small.mp3`, 92 minutes, no tags; more will come. The look to match is in `docs/reference/`:
 Practico, two screens, described there. The audio is Russian; the app speaks Russian, the code and the
@@ -190,10 +187,9 @@ Product:
    a tester with the kit's tools: every screen against the reference, a full play of a short file (cut a
    30-second one from the big file for the tests, never ship it), the Health entry, favorites, search.
 
-Stack: SwiftUI, AVFoundation, HealthKit, iOS 26, no third-party packages. Agents run in parallel on one
-Mac: every agent boots a simulator device of its own and deletes it when done; derived data stays in its
-own tree. Mikhail is reachable through the secretary but slow to answer: decide yourself where you can.
+Stack: SwiftUI, AVFoundation, HealthKit, iOS 26, no third-party packages. Mikhail is reachable through the
+secretary but slow to answer: decide yourself where you can.
 """
     # run(task, power_real, Path.home() / "w/learning/ios-kit", slots=4)  # 06:31, four slots proved too few
-    # run(meditate, power_real, Path.home() / "w/learning/meditate", slots=4)  # after the ios-kit board is stopped
+    # run(meditate, power_real, Path.home() / "w/learning/meditate", slots=10, kit=IOS)  # after the ios-kit board is stopped
     resume(power_real, slots=10)  # the ios-kit run of 06:31, its board stopped at 07:52 to lift the slots from 4

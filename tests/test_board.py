@@ -9,6 +9,7 @@ from factory.core import tracker as tracker_module
 from factory.core.board import Board
 from factory.core.events import agent
 from factory.core.tracker import Tracker, write_intent
+from factory.kits import Kit
 from factory.roles import AgentConfig, Config, Model, Role, Thinking
 from factory.tools import messages as messages_module
 from factory.tools.messages import write_message
@@ -65,9 +66,13 @@ class FakeTelegram:
 class FakeWorkspace:
     def __init__(self, workdir: Path):
         self.workdir = workdir
+        self.kit = None
         self.merged: list[str] = []
         self.dropped: list[str] = []
         self.conflict: str | None = None
+
+    def prepare(self, kit=None) -> None:
+        self.kit = kit
 
     def agent_dir(self, name: str) -> Path:
         return self.workdir / name
@@ -206,10 +211,24 @@ def test_the_timeline_follows_the_task(board: Board) -> None:
     assert tasks[2]["status"] == "green" and tasks[2]["text"] == "did it"
 
 
+def test_the_planner_hears_the_kits_brief_before_the_goal(board: Board, tmp_path: Path,
+                                                            monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(board_module, "start_run", lambda started, workdir: None)
+    monkeypatch.setattr(board_module, "save_tools_by_role", lambda: None)
+    kit = Kit("k", tmp_path / "kit", brief="the brief\n")
+
+    board.start("the goal", kit)
+
+    planner_prompt = board.threads.prompts[0]
+    assert planner_prompt.index("the brief") < planner_prompt.index("the goal")
+    assert board.workspace.kit is kit
+    assert json.loads(board_module.RUN_FILE.read_text())["kit"] == "k"
+
+
 def test_a_crashed_board_archives_every_agent_it_spawned(board: Board, monkeypatch: pytest.MonkeyPatch) -> None:
     create_and_dispatch(board)  # a worker thread is spawned
     board.alive.add(PLANNER)  # the fixture set the planner by hand, a real start spawns it
-    monkeypatch.setattr(board, "start", lambda goal: None)
+    monkeypatch.setattr(board, "start", lambda goal, kit=None: None)
 
     def crash() -> bool:
         raise KeyError("a bug, not an outage")
@@ -223,7 +242,7 @@ def test_a_crashed_board_archives_every_agent_it_spawned(board: Board, monkeypat
 
 
 def test_a_network_outage_is_retried_before_the_run_gives_up(board: Board, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(board, "start", lambda goal: None)
+    monkeypatch.setattr(board, "start", lambda goal, kit=None: None)
     monkeypatch.setattr(board_module.time, "sleep", lambda seconds: None)
     ticks = iter([RuntimeError("bb: fetch failed"), OSError("no route to host"), False])
 
@@ -240,7 +259,7 @@ def test_a_network_outage_is_retried_before_the_run_gives_up(board: Board, monke
 
 
 def test_an_outage_longer_than_the_limit_ends_the_run(board: Board, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(board, "start", lambda goal: None)
+    monkeypatch.setattr(board, "start", lambda goal, kit=None: None)
     monkeypatch.setattr(board_module, "OUTAGE", board_module.timedelta(seconds=0))
 
     def down() -> bool:

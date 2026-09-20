@@ -5,6 +5,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from factory.kits import Kit
 from factory.roles import Role
 from factory.state import ROOT
 
@@ -25,8 +26,9 @@ class Workspace:
         self.workdir = workdir.expanduser().resolve()
         self.factory = self.workdir / ".factory"
 
-    def prepare(self) -> None:
-        # the directory a run starts from: trusted by pi, a git repo with a commit, .factory/ ignored locally
+    def prepare(self, kit: Kit | None = None) -> None:
+        # the directory a run starts from: trusted by pi, a git repo with a commit, .factory/ ignored locally,
+        # seeded with the kit the run names
         trusted = json.loads(TRUST.read_text()) if TRUST.exists() else {}
         if not any(ok and self.workdir.is_relative_to(path) for path, ok in trusted.items()):
             raise RuntimeError(f"{self.workdir} is outside pi's trusted paths in {TRUST}: "
@@ -39,9 +41,33 @@ class Workspace:
         # /.pi anchors at the root of every worktree as well: the symlink belongs to the agent, not the project
         missing = [line for line in (".factory/", "/.pi") if line not in exclude.read_text()]
         exclude.write_text(exclude.read_text() + "".join(f"{line}\n" for line in missing))
+        if kit:
+            self.seed(kit)
         self.forget_worktrees()
         self.with_tools(self.workdir)  # the tester works in the project itself
         self.agent_dir(Role.planner)
+
+    def seed(self, kit: Kit) -> None:
+        # what the kit hands the project, once and committed before any thread exists, so every worktree has it:
+        # its skills where the project has none of that name, a Kit section in AGENTS.md
+        skills = self.workdir / ".agents/skills"
+        skills.mkdir(parents=True, exist_ok=True)
+        for skill in sorted((kit.root / ".agents/skills").iterdir()):
+            if skill.is_dir() and not (skills / skill.name).exists():
+                shutil.copytree(skill, skills / skill.name)
+        lock = self.workdir / "skills-lock.json"
+        if not lock.exists() and (kit.root / "skills-lock.json").exists():
+            shutil.copy(kit.root / "skills-lock.json", lock)
+        link = self.workdir / ".claude/skills"  # Mikhail's Claude Code reads the same skills
+        if not link.is_symlink():
+            link.parent.mkdir(exist_ok=True)
+            link.symlink_to(Path("../.agents/skills"))
+        agents = self.workdir / "AGENTS.md"
+        text = agents.read_text() if agents.exists() else "# Agents\n"
+        if "## Kit" not in text:
+            agents.write_text(text.rstrip("\n") + "\n\n" + kit.agents_section())
+        git(self.workdir, "add", "-f", "AGENTS.md", ".agents", ".claude", *(["skills-lock.json"] if lock.exists() else []))
+        git(self.workdir, "commit", "-m", f"seeded with the {kit.name} kit", check=False)  # seeded before: nothing to commit
 
     def forget_worktrees(self) -> None:
         # what a run before this one left under .factory/work: keys repeat per run, a leftover would block the branch

@@ -11,6 +11,7 @@ from urllib.error import URLError
 from factory.core.events import HUMAN, agent as agent_of_thread, emit
 from factory.core.tracker import Tracker
 from factory.core.workspace import Workspace
+from factory.kits import Kit
 from factory.roles import ROLE_BY_LABEL, AgentConfig, Config, Role, prompt, save_tools_by_role
 from factory.state import COSTS, EVENTS, RUN_FILE, start_run
 from factory.tools.bb import Threads
@@ -94,9 +95,11 @@ class Board:
         agent = self.agents.get(thread) or agent_of_thread(ROLE_BY_LABEL[task["type"]], thread=thread)
         return {**agent, "role": ROLE_BY_LABEL[task["type"]]} if agent["imitator"] else agent
 
-    def start(self, goal: str) -> None:
-        # the goal is a message to the planner; the run is a directory of its own from here on
-        self.workspace.prepare()
+    def start(self, goal: str, kit: Kit | None = None) -> None:
+        # the goal is a message to the planner, the kit's brief before it; the run is a directory of its own from here on
+        self.workspace.prepare(kit)
+        if kit:
+            goal = f"{kit.brief}\n{goal}"
         self.project = self.threads.project_for(self.workspace.workdir)
         save_tools_by_role()
         started = datetime.now().strftime("%Y-%m-%d-%H%M%S")
@@ -112,6 +115,7 @@ class Board:
             secretary, Role.secretary, f"{secretary.prompt} {secretary.model}", prompt(secretary.prompt),
             self.workspace.agent_dir(secretary.prompt))
         RUN_FILE.write_text(json.dumps({"goal": goal, "started": started, "workdir": str(self.workspace.workdir),
+                                        "kit": kit.name if kit else None,
                                         "planner": self.planner, "secretary": self.secretary}, ensure_ascii=False))
         log(f"goal «{goal}» → planner {self.planner}, secretary {self.secretary}, run {started}, "
             f"results in {self.workspace.workdir}")
@@ -322,8 +326,8 @@ class Board:
         self.since_review = []
         return "\n".join(lines)
 
-    def run(self, goal: str) -> None:
-        self.start(goal)
+    def run(self, goal: str, kit: Kit | None = None) -> None:
+        self.start(goal, kit)
         self.serve()
 
     def resume(self) -> None:

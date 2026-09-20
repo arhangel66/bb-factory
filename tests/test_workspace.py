@@ -6,6 +6,7 @@ import pytest
 
 from factory.core import workspace as module
 from factory.core.workspace import Workspace, git
+from factory.kits import Kit
 
 
 @pytest.fixture
@@ -114,3 +115,27 @@ def test_a_directory_left_where_a_worktree_goes_does_not_block_it(prepared: Work
     path = prepared.worktree("FAB-7")
 
     assert path == stale and (path / ".git").exists() and not (path / "check.sh").exists()
+
+
+def test_a_kit_seeds_the_project_once_and_keeps_its_own_skill(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    trust = tmp_path / "trust.json"
+    trust.write_text(json.dumps({str(tmp_path): True}))
+    monkeypatch.setattr(module, "TRUST", trust)
+    for name in ("a", "b"):
+        (tmp_path / f"kit/.agents/skills/{name}").mkdir(parents=True)
+        (tmp_path / f"kit/.agents/skills/{name}/SKILL.md").write_text(f"kit {name}")
+    project = tmp_path / "project"
+    (project / ".agents/skills/a").mkdir(parents=True)
+    (project / ".agents/skills/a/SKILL.md").write_text("mine")  # the project rewrote it: its copy wins
+    kit = Kit("k", tmp_path / "kit", brief="the brief")
+    space = Workspace(project)
+
+    space.prepare(kit)
+    space.prepare(kit)  # a second run on the same project seeds nothing more
+
+    assert (project / ".agents/skills/a/SKILL.md").read_text() == "mine"
+    assert (project / ".agents/skills/b/SKILL.md").read_text() == "kit b"
+    assert (project / ".claude/skills").resolve() == (project / ".agents/skills").resolve()
+    assert "## Kit" in (project / "AGENTS.md").read_text()
+    assert git(project, "log", "--format=%s").stdout.split() == ["seeded", "with", "the", "k", "kit", "init"]
+    assert git(project, "status", "--porcelain").stdout == ""
