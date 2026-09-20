@@ -7,30 +7,34 @@ through the board, which is why a run can be replayed from its files and resumed
 
 ```mermaid
 flowchart LR
-    M["Mikhail · Telegram"]
-    S["secretary"]
-    P["planner"]
-    B(["the board · a tick every 10 s"])
-    F[("the run · tasks.json · intents · messages · events")]
-    L["lead · one per epic"]
-    W["worker · one per code task, in a worktree"]
-    T["tester · one per test task, in the project"]
-    R[("the project · a git repository")]
+    M["Mikhail<br/>Telegram"]
 
-    M -->|"text, voice, a file"| B
-    B -->|"what the secretary wrote"| M
-    B -->|"an ask task, his answer"| S
-    S -->|"contact_human, tell_planner"| B
-    B -->|"the goal, every handoff, the review"| P
-    P -->|"create_task, amend_task, report"| B
+    subgraph per_run ["one thread per run"]
+        direction TB
+        S["secretary"]
+        P["planner"]
+    end
+
+    B(["the board<br/>a tick every 10 s"])
+
+    subgraph per_task ["one thread per task"]
+        direction TB
+        L["lead · an epic"]
+        W["worker · a code task,<br/>in a worktree"]
+        T["tester · a test task,<br/>in the project"]
+    end
+
+    F[("the run<br/>tasks · intents<br/>messages · events")]
+    R[("the project<br/>a git repository")]
+
+    M <--> B
+    S <--> B
+    P <--> B
+    B <--> L
+    B <--> W
+    B <--> T
     B --- F
-    B -->|"an epic"| L
-    L -->|"sub-tasks"| B
-    B -->|"a code task"| W
-    B -->|"a test task"| T
-    W -->|"handoff"| B
-    T -->|"handoff"| B
-    B -->|"merges every worktree"| R
+    B --> R
 ```
 
 ## A run
