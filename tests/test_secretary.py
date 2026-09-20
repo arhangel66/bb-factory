@@ -17,10 +17,12 @@ SECRETARY, PLANNER = "thr_secretary", "thr_planner"
 class FakeTelegram:
     def __init__(self, incoming: list[str] = []):
         self.sent: list[str] = []
+        self.files: list[str] = []
         self.incoming = list(incoming)
 
-    def send(self, text: str) -> None:
+    def send(self, text: str, files: list[str] = ()) -> None:
         self.sent.append(text)
+        self.files.extend(files)
 
     def replies(self) -> list[str]:
         return [self.incoming.pop(0)] if self.incoming else []
@@ -64,6 +66,18 @@ def test_a_question_goes_to_mikhail_once(board: Board) -> None:
 
     assert board.telegram.sent == ["Tailwind or plain CSS?"]
     assert board.threads.told == []
+
+
+def test_files_go_to_mikhail_with_the_text(board: Board) -> None:
+    message = {"at": datetime.now().astimezone().isoformat(), "from": "secretary", "to": "human",
+               "text": "Three looks, which one?", "wait_minutes": 120, "files": ["/tmp/a.png", "/tmp/b.png"], "status": None}
+    with module.MESSAGES.open("a") as file:
+        file.write(json.dumps(message) + "\n")
+
+    board.deliver()
+
+    assert board.telegram.sent == ["Three looks, which one?"]
+    assert board.telegram.files == ["/tmp/a.png", "/tmp/b.png"]
 
 
 def test_his_answer_wakes_the_secretary(board: Board) -> None:

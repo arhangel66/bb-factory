@@ -8,6 +8,7 @@ from factory.roles import AgentConfig, Config, Model, Role, Thinking
 from factory.state import RUN_FILE
 from factory.tools.bb import Threads
 from factory.tools.telegram import Telegram
+from factory.tools.voice import Voice
 
 # who runs on what: every agent names its model and how long it thinks, nothing is left to a default
 PLANNER = AgentConfig(prompt=Role.planner)
@@ -31,14 +32,14 @@ TESTER_POWER = AgentConfig(prompt=Role.tester, model=Model.kimi_k3, thinking=Thi
 
 def run(goal: str, config: Config, workdir: Path, slots: int) -> None:
     # linger: after the report the planner and the secretary stay, Mikhail talks to the run in Telegram until Ctrl-C
-    Board(config, tracker=Tracker(), threads=Threads(), workspace=Workspace(workdir), telegram=Telegram(),
+    Board(config, tracker=Tracker(), threads=Threads(), workspace=Workspace(workdir), telegram=Telegram(voice=Voice()),
           slots=slots, linger=True).run(goal)
 
 
 def resume(config: Config, slots: int) -> None:
     # the run state/current points at, after its board has ended: Mikhail goes on talking to it in Telegram
     workdir = Path(json.loads(RUN_FILE.read_text())["workdir"])
-    Board(config, tracker=Tracker(), threads=Threads(), workspace=Workspace(workdir), telegram=Telegram(),
+    Board(config, tracker=Tracker(), threads=Threads(), workspace=Workspace(workdir), telegram=Telegram(voice=Voice()),
           slots=slots).resume()
 
 

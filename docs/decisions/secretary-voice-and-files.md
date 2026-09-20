@@ -35,40 +35,46 @@ secretary --contact_human(text, wait_minutes, files)--> messages.jsonl --board t
 
 - A voice message becomes `(voice) <transcript>`; a failed transcription becomes
   `(voice message; transcription failed: <reason>)` so the secretary can ask him to type it.
-- A file becomes `<caption>\n(file: /abs/path)`; the path is under the project's `.factory/inbox/`,
-  reachable by every agent of the run and ignored by git like the rest of `.factory/`. The secretary
-  hands the path to the planner with `tell_planner` when the file is work.
+- A file becomes `<caption>\n(file: /abs/path)`; the path is under the run's own `inbox/`
+  (`state/runs/<run>/inbox/`, resolved, so it stays right when `state/current` moves on), reachable by
+  every agent by its absolute path. The secretary hands it to the planner with `tell_planner` when the
+  file is work. Not `.factory/inbox/` in the project as first planned: `Telegram` would have needed the
+  workspace for it, and the file belongs to the conversation it came in, not to the project.
 - `contact_human` gains `files`, a list of absolute paths; the message carries them and the board sends
   each after the text, photos inline.
 - Multipart upload without a new dependency: `curl -F` is on every Mac; `urllib` has no multipart.
 
 ## Steps
 
-- [ ] `factory/tools/voice.py`: `Voice(cli, model)` with `transcribe(audio: Path) -> str` — `ffmpeg`
+- [x] `transcribe-cli` installed for the whole Mac, at Mikhail's ask: the binary (4 MB, links only
+  system frameworks) copied to `~/.local/bin/transcribe-cli`, which is on PATH, and the model to
+  `~/.local/share/transcribe-cli/gigaam-v3-e2e-rnnt-Q8_0.gguf`; Beseda's copies stay untouched, and
+  bb-loop could point at these too.
+- [x] `factory/tools/voice.py`: `Voice(cli, model)` with `transcribe(audio: Path) -> str` — `ffmpeg`
   to 30-second 16 kHz mono WAV pieces in a temporary directory, `transcribe-cli -m -l ru -q -o` per
-  piece, joined; a missing binary, model or `ffmpeg`, a non-zero exit or an empty text raise with a
-  short reason. Test: a 5-second Russian clip made with macOS `say -v Milena` in `tests/fixtures/`,
-  skipped when the CLI is not on this Mac. Check: `.venv/bin/python -m pytest -q`.
-- [ ] `factory/tools/telegram.py`: `Telegram(voice: Voice)`; `replies(inbox: Path)` handles `voice`,
-  `audio`, `photo`, `document` besides `text` — `getFile`, download from
-  `https://api.telegram.org/file/bot<token>/<path>`, into `inbox/<message_id>-<name>`; `send(text,
-  files)` posts the text, then `sendPhoto`/`sendDocument` per file through `curl -F`. Test: fake
-  `call` and download, three shapes of update → three texts; `send` with a png → `sendPhoto`.
-- [ ] `factory/core/board.py`: `replies(self.workspace.factory / "inbox")`; `send(m["text"],
-  m.get("files") or [])`. `tests/test_board.py`, `tests/test_secretary.py`: the fakes take the new
-  arguments; one test — a message with `files` reaches the fake as files.
-- [ ] `.pi/extensions/factory.ts`: `contact_human` takes optional `files: string[]` and writes them
-  into the message; the description says photos show inline and what a path must be.
-- [ ] `factory/roles/prompts/secretary.md`: three lines — his voice comes as `(voice) …` and may be
-  misheard, ask when it reads wrong; a file comes as a path, pass it on; screenshots and reports go
-  to him as `files`, not as text. `tests/test_prompts.py` if it checks the prompt.
-- [ ] `docs/architecture/overview.md`: `telegram.py` and `voice.py` lines; `docs/index.md` if needed.
-- [ ] Live check with Mikhail's phone, the running bot: one voice message, one photo, one screenshot
+  piece, joined; a missing binary or model, an unreadable file, a non-zero exit or an empty text raise
+  with a short reason. Test: a 3.5-second Russian clip made with macOS `say -v Milena` in
+  `tests/fixtures/voice-ru.m4a`, skipped when the CLI is not on this Mac.
+- [x] `factory/tools/telegram.py`: `Telegram(voice: Voice)`; `replies()` handles `voice`, `audio`,
+  `photo` (the largest size), `document` besides `text` — `getFile`, download from
+  `https://api.telegram.org/file/bot<token>/<path>` into the run's `inbox/<message_id>-<name>`;
+  `send(text, files)` posts the text, then `sendPhoto`/`sendDocument` per file through `curl -F`.
+  Tests in `tests/test_telegram.py` with a fake Bot API: five shapes in and out.
+- [x] `factory/core/board.py`: `send(m["text"], m.get("files") or [])`; the fakes in
+  `tests/test_board.py` and `tests/test_secretary.py` take `files`; one test — a message with `files`
+  reaches the fake as files. `construct.py` wires `Telegram(voice=Voice())`.
+- [x] `.pi/extensions/factory.ts`: `contact_human` takes optional `files: string[]` and writes them
+  into the message; the description says a png or jpg shows as a picture, the rest as a document.
+- [x] `factory/roles/prompts/secretary.md`: his voice as `(voice) …` may be misheard, ask about the
+  word; a file as `(file: /path)`, pass the path on; screenshots and mockups go as `files`.
+- [x] `docs/architecture/overview.md`: the `telegram.py` and `voice.py` lines.
+- [ ] Live check with Mikhail's phone, on the first board that runs this code (the ios-kit board of
+  2026-09-20 runs the old one and would eat the updates): one voice message, one photo, one picture
   back. Recorded here without quoting the transcript.
 
 ## Not done
 
 - No paid fallback, no duplicate-send guard, no image validation: one person, one chat, a board tick
   that logs its failures.
-- The CLI path is a constant in `voice.py`; when Beseda moves its build, one line changes. Copying the
-  binary and the model into the factory was considered and rejected: 261 MB that already lives here.
+- The binary and the model are copies under `~/.local`, not a build: when Beseda updates transcribe.cpp
+  or its model, the copies stay as they are until someone copies again.

@@ -189,13 +189,15 @@ export default function (pi: ExtensionAPI) {
     description:
       "Write to Mikhail. You are the only agent who can: nobody else reaches him. " +
       "wait_minutes above zero means you expect an answer — it wakes you when he writes back, or tells you " +
-      "he stayed silent when the time is up. wait_minutes 0 just tells him something and waits for nothing.",
+      "he stayed silent when the time is up. wait_minutes 0 just tells him something and waits for nothing. " +
+      "files go after the text: a png or jpg shows in his chat as a picture, anything else as a document.",
     parameters: Type.Object({
       text: Type.String({ description: "The message as he will read it, in his language" }),
       wait_minutes: Type.Number({ description: "How long his answer is worth waiting for; 0 = no answer expected" }),
+      files: Type.Optional(Type.Array(Type.String(), { description: "Absolute paths of files to send him with the text" })),
     }),
     async execute(_id, p) {
-      message({ from: "secretary", to: "human", text: p.text, wait_minutes: p.wait_minutes });
+      message({ from: "secretary", to: "human", text: p.text, wait_minutes: p.wait_minutes, files: p.files ?? [] });
       // the time is the secretary's way of telling his answer from what he had written before the question
       const at = new Date().toLocaleTimeString("en-GB");
       return text(p.wait_minutes ? `sent at ${at}; his answer or his silence will wake you` : `sent at ${at}`);
