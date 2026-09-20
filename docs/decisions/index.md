@@ -16,3 +16,4 @@ Plans in the order they were made; checkboxes show what was done.
 - [ios-kit-run.md](ios-kit-run.md) — the factory prepares its own iOS ground: skills tried and kept, a starter, the build-test-tap loop measured on this Mac, the kit is the deliverable
 - [secretary-voice-and-files](secretary-voice-and-files.md) — the secretary hears Mikhail's voice messages (Beseda's transcribe-cli) and passes files both ways; plan, not built yet
 - [skills-by-role](skills-by-role.md) — skills attached to the agents in sets per role, delivered through each agent's .pi/skills; the first is okf-knowledge-base; plan
+- [kits](kits.md) — a preset named in the run (kit=IOS): the project is seeded with the kit's skills and a Kit section in AGENTS.md, the planner gets the kit's brief before the goal; plan
