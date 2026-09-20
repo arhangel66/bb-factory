@@ -30,6 +30,12 @@ def test_prepare_makes_a_repo_with_a_commit(prepared: Workspace) -> None:
     assert (prepared.factory / "planner/.pi/extensions").resolve() == module.ROOT / ".pi/extensions"
 
 
+def test_every_agent_directory_leads_back_to_the_factory(prepared: Workspace) -> None:
+    # .pi/extensions/factory.ts finds state/ this way: an agent's own .pi holds its skills and leads nowhere
+    for path in (prepared.factory / "planner", prepared.worktree("FAB-9"), prepared.workdir):
+        assert (path / ".pi/extensions").resolve().parent.parent == module.ROOT
+
+
 def test_untrusted_workdir_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     trust = tmp_path / "trust.json"
     trust.write_text(json.dumps({str(tmp_path / "trusted"): True}))

@@ -60,3 +60,10 @@ default here: nothing breaks, new files conform), or a pass that adds `type: Doc
   `docs/index.md` if a line is needed.
 - Decided 2026-09-20 (Mikhail left it to me): the bundles grow into v0.2 as they are touched; no pass over
   the existing files. Revisit if the skill makes agents flag old files more than it helps them write new ones.
+- [x] Fixed at 12:45 on 2026-09-20, found by the first run that started on this code: making `.pi` a real
+  directory broke `.pi/extensions/factory.ts`, which read the factory's root as one level above `.pi` — the
+  agent's own directory now, so `state/current` was not there and every factory tool failed with `ENOENT`.
+  It resolves `.pi/extensions` and goes two levels up instead, which holds for both shapes. The ios-kit run
+  never saw it: its board had the old `with_tools` in memory since 07:51 and kept making the symlink. The
+  invariant is a test now — from a planner directory, a worktree and the project, `.pi/extensions` resolves
+  two levels below the factory.

@@ -5,8 +5,9 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 
-// an agent runs in a directory of its own, where .pi is a symlink back to the factory: that is where state/ lives
-const FACTORY = join(realpathSync(".pi"), "..");
+// an agent runs in a directory of its own, whose .pi/extensions is a symlink to the factory's: two levels up
+// from where that really is, state/ lives. Not .pi itself — that is the agent's own directory, skills and all
+const FACTORY = join(realpathSync(".pi/extensions"), "../..");
 // the run: state/current is a symlink the board points at the run's directory (factory/state.py)
 const RUN = join(FACTORY, "state/current");
 const TASKS = join(RUN, "tasks.json"); // the board's view of the tasks; factory/core/tracker.py is its only writer
