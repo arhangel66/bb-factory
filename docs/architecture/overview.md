@@ -176,7 +176,10 @@ its results are — and `state/current` is a symlink to the newest, the way the 
 ## Workspace — `factory/core/workspace.py`
 
 The run's project is a git repo; `.factory/` inside it holds one directory per agent and one worktree per
-`code` task. Every agent directory links `.pi` back to the factory, and must be under pi's trusted paths.
+`code` task. A project with no `AGENTS.md` has never been through the factory: it is given one and an
+empty `docs/index.md` from `factory/roles/templates/`, committed before any thread exists, so every
+worktree has them — knowledge in OKF, the ponytail ladder, a commit per finished step, and a `## Check`
+section the first task fills. Every agent directory links `.pi` back to the factory, and must be under pi's trusted paths.
 
 ## Timeline — `factory/core/events.py`, `factory/ui/`
 

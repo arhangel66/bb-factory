@@ -10,6 +10,7 @@ from factory.roles import SKILLS_BY_ROLE, Role
 from factory.state import ROOT
 
 TRUST = Path.home() / ".pi/agent/trust.json"  # {path: trusted}; outside these pi ignores .pi/ and the agent loses its tools
+TEMPLATES = ROOT / "factory/roles/templates"  # what a project that has never been through the factory starts with
 
 
 def git(workdir: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
@@ -41,11 +42,24 @@ class Workspace:
         # /.pi anchors at the root of every worktree as well: the symlink belongs to the agent, not the project
         missing = [line for line in (".factory/", "/.pi") if line not in exclude.read_text()]
         exclude.write_text(exclude.read_text() + "".join(f"{line}\n" for line in missing))
+        self.knowledge()
         if kit:
             self.seed(kit)
         self.forget_worktrees()
         self.with_tools(self.workdir, Role.tester)  # the tester works in the project itself
         self.agent_dir(Role.planner, Role.planner)
+
+    def knowledge(self) -> None:
+        # a project with no AGENTS.md has never been through the factory: it starts with how it is worked on
+        # — docs in OKF, the ponytail ladder, a commit per step, a check to fill — and an empty docs/ to
+        # fill. Force-added: Mikhail's global gitignore hides AGENTS.md
+        if (self.workdir / "AGENTS.md").exists():
+            return
+        shutil.copy(TEMPLATES / "AGENTS.md", self.workdir / "AGENTS.md")
+        (self.workdir / "docs").mkdir(exist_ok=True)
+        shutil.copy(TEMPLATES / "docs/index.md", self.workdir / "docs/index.md")
+        git(self.workdir, "add", "-f", "AGENTS.md", "docs")
+        git(self.workdir, "commit", "-m", "how this project is worked on, and a docs/ to fill")
 
     def seed(self, kit: Kit) -> None:
         # what the kit hands the project, once and committed before any thread exists, so every worktree has it:

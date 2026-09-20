@@ -51,13 +51,18 @@ update the document its change touches and to give a new part a document and an 
   `## Check` refuses; the second call after a fix passes and the branch has master merged in.
 - [ ] `.pi/extensions/factory.ts`: a worker's `handoff` runs `finish` before writing the intent and returns
   its refusal as the tool result; a tester's commits the project. `failed` commits and writes the intent.
-- [ ] `factory/core/workspace.py`: `merge()` no longer commits; `prepare()` seeds `AGENTS.md` and
-  `docs/index.md` from `factory/roles/templates/` when the project has no `AGENTS.md`. Tests.
+- [x] `factory/core/workspace.py`: `prepare()` seeds `AGENTS.md` and `docs/index.md` from
+  `factory/roles/templates/` when the project has no `AGENTS.md`, and commits them before any thread
+  exists — knowledge in OKF with a link to it, the ponytail ladder, a commit per finished step, and an
+  empty `## Check` for the first task to fill. Force-added: Mikhail's global gitignore hides `AGENTS.md`.
+  Tests: a new project gets both and the tree is clean; a project with words of its own keeps them.
+- [ ] `factory/core/workspace.py`: `merge()` no longer commits — the worker's `handoff` already did.
 - [ ] `factory/core/board.py`: `bring_home` merges `ok` and `warning`, drops the worktree of `failed`. Test.
 - [ ] Prompts: `worker.md` — you finish through `handoff`, it commits, merges master in and runs the check;
   resolve what it reports and call it again; keep `docs/` current, keep `## Check` true; `tester.md` — your
   tests are committed by `handoff`. `docs/architecture/overview.md`, `prompts.md`, this file's index line.
-- [ ] `AGENTS.md` of this repo: `## Check` with the pytest command, so it is what its own tool would read.
+- [x] `AGENTS.md` of this repo: `## Check` with the pytest command, so it is what its own tool would read
+  — and tracked at last, force-added past the global gitignore that had kept it out of the repository.
 - [ ] A real run of a small goal in a fresh workdir: one commit per task, `## Check` filled, `docs/` kept,
   a conflict induced by two tasks on one file resolved by the worker, not redone.
 

@@ -36,6 +36,30 @@ def test_every_agent_directory_leads_back_to_the_factory(prepared: Workspace) ->
         assert (path / ".pi/extensions").resolve().parent.parent == module.ROOT
 
 
+def test_a_new_project_starts_with_how_it_is_worked_on(prepared: Workspace) -> None:
+    agents = (prepared.workdir / "AGENTS.md").read_text()
+
+    assert "Open Knowledge Format" in agents and "ponytail" in agents
+    assert "## Check" in agents  # the first task fills it, and the handoff reads it from there
+    assert (prepared.workdir / "docs/index.md").exists()
+    assert git(prepared.workdir, "status", "--porcelain").stdout == ""  # committed before any thread exists
+
+
+def test_a_project_that_already_says_how_it_is_worked_on_keeps_its_own_words(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    trust = tmp_path / "trust.json"
+    trust.write_text(json.dumps({str(tmp_path): True}))
+    monkeypatch.setattr(module, "TRUST", trust)
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / "AGENTS.md").write_text("# Agents\n\nRun `make test`.\n")
+
+    Workspace(project).prepare()
+
+    assert (project / "AGENTS.md").read_text() == "# Agents\n\nRun `make test`.\n"
+    assert not (project / "docs").exists()
+
+
 def test_untrusted_workdir_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     trust = tmp_path / "trust.json"
     trust.write_text(json.dumps({str(tmp_path / "trusted"): True}))
@@ -50,7 +74,8 @@ def test_merge_brings_the_work_into_the_project(prepared: Workspace) -> None:
     assert prepared.merge("FAB-1", "first task") is None
 
     assert (prepared.workdir / "app.py").read_text() == "print('one')\n"
-    assert git(prepared.workdir, "ls-files").stdout.split() == ["app.py"]  # the agent's .pi stays out of the project
+    # the agent's .pi stays out of the project; what is there besides the work is what prepare() seeded
+    assert git(prepared.workdir, "ls-files").stdout.split() == ["AGENTS.md", "app.py", "docs/index.md"]
     assert not (prepared.factory / "work/FAB-1").exists()
 
 
@@ -144,7 +169,9 @@ def test_a_kit_seeds_the_project_once_and_keeps_its_own_skill(tmp_path: Path, mo
     assert (project / ".agents/skills/b/SKILL.md").read_text() == "kit b"
     assert (project / ".claude/skills").resolve() == (project / ".agents/skills").resolve()
     assert "## Kit" in (project / "AGENTS.md").read_text()
-    assert git(project, "log", "--format=%s").stdout.split() == ["seeded", "with", "the", "k", "kit", "init"]
+    # the kit's section is appended to the AGENTS.md the project was given a commit earlier, not a second file
+    assert git(project, "log", "--format=%s").stdout.splitlines() == [
+        "seeded with the k kit", "how this project is worked on, and a docs/ to fill", "init"]
     assert git(project, "status", "--porcelain").stdout == ""
 
 
