@@ -12,6 +12,7 @@ from factory.core.events import agent
 from factory.core.tracker import Tracker, write_intent
 from factory.kits import Kit
 from factory.roles import AgentConfig, Config, Model, Role, Thinking
+from factory.tools.remote import Remote
 from factory.tools import messages as messages_module
 from factory.tools.messages import write_message
 
@@ -121,6 +122,9 @@ def board(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Board:
                       for role in Role}
     board = Board(config, tracker=Tracker(tmp_path / "tasks.json", tmp_path / "intents.jsonl"),
                   threads=FakeThreads(), workspace=FakeWorkspace(tmp_path), telegram=FakeTelegram())
+    board.alarms: list[tuple[str, str]] = []  # what the board would have put on Mikhail's board, route and title
+    monkeypatch.setattr(board_module, "notify",
+                        lambda route, title, body, action, dedupe_key: board.alarms.append((route, title)))
     board.planner = PLANNER
     board.agents[PLANNER] = agent("planner", Model.gpt_5_6_terra, PLANNER)
     board.costs[PLANNER] = {"role": "planner", "model": Model.gpt_5_6_terra, "thinking": Thinking.medium,
@@ -289,9 +293,10 @@ def test_a_crashed_board_archives_every_agent_it_spawned(board: Board, monkeypat
     create_and_dispatch(board)  # a worker thread is spawned
     board.alive.add(PLANNER)  # the fixture set the planner by hand, a real start spawns it
     monkeypatch.setattr(board, "start", lambda goal, kit=None: None)
+    monkeypatch.setattr(board_module, "OUTAGE", board_module.timedelta(seconds=-1))  # spent before the first try
 
     def crash() -> bool:
-        raise KeyError("a bug, not an outage")
+        raise KeyError("a bug the board cannot get past")
     monkeypatch.setattr(board, "tick", crash)
 
     with pytest.raises(KeyError):
@@ -304,7 +309,7 @@ def test_a_crashed_board_archives_every_agent_it_spawned(board: Board, monkeypat
 def test_a_network_outage_is_retried_before_the_run_gives_up(board: Board, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(board, "start", lambda goal, kit=None: None)
     monkeypatch.setattr(board_module.time, "sleep", lambda seconds: None)
-    ticks = iter([RuntimeError("bb: fetch failed"), OSError("no route to host"), False])
+    ticks = iter([Remote("bb: fetch failed"), OSError("no route to host"), False])
 
     def flaky() -> bool:
         outcome = next(ticks)
@@ -318,9 +323,60 @@ def test_a_network_outage_is_retried_before_the_run_gives_up(board: Board, monke
     assert next(ticks, "spent") == "spent"
 
 
+def test_a_fault_of_the_boards_own_costs_one_tick_not_the_run(board: Board, monkeypatch: pytest.MonkeyPatch,
+                                                              capsys: pytest.CaptureFixture) -> None:
+    # a bug is not weather: it is logged with the traceback that says where it is, and the run goes on
+    monkeypatch.setattr(board, "start", lambda goal, kit=None: None)
+    monkeypatch.setattr(board_module.time, "sleep", lambda seconds: None)
+    ticks = iter([KeyError("thr_gone"), False])
+
+    def flaky() -> bool:
+        outcome = next(ticks)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+    monkeypatch.setattr(board, "tick", flaky)
+
+    board.run("goal")
+
+    assert "Traceback" in capsys.readouterr().out
+
+
+def test_the_board_says_once_when_a_tick_fails_and_it_carries_on(board: Board,
+                                                                 monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(board, "start", lambda goal, kit=None: None)
+    monkeypatch.setattr(board_module.time, "sleep", lambda seconds: None)
+    ticks = iter([OSError("no route to host"), OSError("no route to host"), False])
+
+    def flaky() -> bool:
+        outcome = next(ticks)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+    monkeypatch.setattr(board, "tick", flaky)
+
+    board.run("goal")
+
+    assert board.alarms == [("digest", "a tick of the factory board failed")]
+
+
+def test_the_board_says_when_it_gives_up_on_the_run(board: Board, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(board, "start", lambda goal, kit=None: None)
+    monkeypatch.setattr(board_module, "OUTAGE", board_module.timedelta(seconds=-1))  # spent before the first try
+
+    def down() -> bool:
+        raise OSError("no route to host")
+    monkeypatch.setattr(board, "tick", down)
+
+    with pytest.raises(OSError):
+        board.run("goal")
+
+    assert board.alarms == [("telegram", "the factory board gave up")]
+
+
 def test_an_outage_longer_than_the_limit_ends_the_run(board: Board, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(board, "start", lambda goal, kit=None: None)
-    monkeypatch.setattr(board_module, "OUTAGE", board_module.timedelta(seconds=0))
+    monkeypatch.setattr(board_module, "OUTAGE", board_module.timedelta(seconds=-1))  # spent before the first try
 
     def down() -> bool:
         raise OSError("no route to host")

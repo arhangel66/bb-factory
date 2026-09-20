@@ -3,6 +3,7 @@
 import json
 import subprocess
 import time
+import traceback
 from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -16,13 +17,15 @@ from factory.roles import ROLE_BY_LABEL, AgentConfig, Config, Role, prompt, save
 from factory.state import COSTS, EVENTS, RUN_FILE, start_run
 from factory.tools.bb import Threads
 from factory.tools.messages import messages, write_message
+from factory.tools.notify import notify
+from factory.tools.remote import Remote
 from factory.tools.telegram import Telegram
 
 TICK = timedelta(seconds=10)
 REVIEW = timedelta(minutes=15)  # how often the planner is asked to look at the whole
 STALL = timedelta(minutes=5)  # how long a thread may be stopped before the board starts it again
 OUTAGE = timedelta(minutes=5)  # how long the network or bb may fail before the run gives up
-TRANSIENT = (URLError, OSError, RuntimeError, subprocess.TimeoutExpired)  # what a tick may hit and the next may not
+TRANSIENT = (URLError, OSError, Remote, subprocess.TimeoutExpired)  # the other side, not the board: the next tick may go through
 COLOR = {"ok": "green", "warning": "yellow", "failed": "red"}
 
 
@@ -312,27 +315,43 @@ class Board:
         floor = self.tracker.floor(None)
         undelivered = messages()[self.relayed:]
         for m in undelivered:
-            sender_thread = {Role.secretary: self.secretary, Role.planner: self.planner}.get(m["from"])
-            emit(self.agents.get(sender_thread, HUMAN), "message", "sent", m["to"], m["text"], m["status"])
-            if m["to"] == "human":
-                for failure in self.telegram.send(m["text"], m.get("files") or []):
-                    log(f"a file did not reach Mikhail: {failure}")
-                    self.since_review.append(f"a file the {m['from']} sent Mikhail did not reach him: {failure}")
-                wait = m.get("wait_minutes") or 0
-                self.waiting = datetime.now() + timedelta(minutes=wait) if wait else None
-            else:
-                thread = self.secretary if m["to"] == Role.secretary else self.planner
-                sender = "Mikhail" if m["from"] == "human" else f"the {m['from']}"
-                when = datetime.fromisoformat(m["at"]).strftime("%H:%M:%S")  # the secretary tells his answer from what he said before it
-                self.wake(thread, f"Message from {sender} at {when}:\n{m['text']}\n{m.get('details', '')}".strip(), floor)
+            # counted before it is handed on: a message that fails half-way is lost once, never sent twice.
+            # Losing one is visible — the log, the planner's next look, the sender who can be asked again;
+            # a message repeated every ten seconds is damage to Mikhail no one can take back
             self.relayed += 1
-            log(f"message {m['from']} → {m['to']}: {m['text'].splitlines()[0]!r}")
+            try:
+                self.hand(m, floor)
+            except Exception as error:
+                log(f"message {m['from']} → {m['to']} did not go: {error}")
+                self.since_review.append(f"a message the {m['from']} sent {m['to']} did not go: {error}")
         if self.waiting and datetime.now() > self.waiting:
             self.waiting = None
             self.wake(self.secretary, "Mikhail has not answered within the time you gave him.", floor)
             log("Mikhail did not answer → secretary")
             return True
         return bool(undelivered)
+
+    def hand(self, m: dict, floor: list[dict]) -> None:
+        # one message on its way: to Mikhail through the bot, to an agent as a wake
+        sender_thread = {Role.secretary: self.secretary, Role.planner: self.planner}.get(m["from"])
+        emit(self.agents.get(sender_thread, HUMAN), "message", "sent", m["to"], m["text"], m["status"])
+        if m["to"] == "human":
+            for failure in self.telegram.send(m["text"], m.get("files") or []):
+                log(f"a file did not reach Mikhail: {failure}")
+                self.since_review.append(f"a file the {m['from']} sent Mikhail did not reach him: {failure}")
+            wait = m.get("wait_minutes") or 0
+            self.waiting = datetime.now() + timedelta(minutes=wait) if wait else None
+        else:
+            thread = self.secretary if m["to"] == Role.secretary else self.planner
+            sender = "Mikhail" if m["from"] == "human" else f"the {m['from']}"
+            when = datetime.fromisoformat(m["at"]).strftime("%H:%M:%S")  # the secretary tells his answer from what he said before it
+            self.wake(thread, f"Message from {sender} at {when}:\n{m['text']}\n{m.get('details', '')}".strip(), floor)
+        log(f"message {m['from']} → {m['to']}: {m['text'].splitlines()[0]!r}")
+
+    def alarm(self, route: str, title: str, body: str, action: str) -> None:
+        # the board is the only thing that knows its run is in trouble; one key per run, so a condition
+        # that holds counts instead of filling Mikhail's board
+        notify(route, title, body, action, dedupe_key=f"factory-board-{RUN_FILE.resolve().parent.name}")
 
     def reported(self) -> bool:
         # the report is the planner's message with a verdict; its answers to the secretary have none
@@ -411,17 +430,27 @@ class Board:
         self.serve()
 
     def serve(self) -> None:
-        # tick until the run is over; a failing network or bb is retried for a while, not fatal at once
+        # tick until the run is over. A tick that fails is skipped, whatever it hit: the other side may
+        # answer next time, and a fault of the board's own is one tick's worth of work, not the run's.
+        # Only a step that keeps failing for the whole outage ends it
         failing_since: datetime | None = None
         try:
             while True:
                 try:
                     going = self.tick()
                     failing_since = None
-                except TRANSIENT as error:
+                except Exception as error:
+                    first = failing_since is None
                     failing_since = failing_since or datetime.now()
                     if datetime.now() - failing_since > OUTAGE:
+                        self.alarm("telegram", "the factory board gave up", f"{type(error).__name__}: {error}",
+                                   "resume the run: .venv/bin/python -m factory.construct")
                         raise
+                    if not isinstance(error, TRANSIENT):
+                        log(traceback.format_exc())
+                    if first:
+                        self.alarm("digest", "a tick of the factory board failed",
+                                   f"{type(error).__name__}: {error}", "nothing: the board went on")
                     log(f"tick failed, retrying: {error}")
                     going = True
                 self.tracker.save()

@@ -13,7 +13,10 @@ then ticks every 10 seconds:
    work that does not merge goes back to its worker with the conflict, the worktree kept, to merge the main
    branch in and hand off again; a dead worker's task is canceled and a copy takes its place among the
    blockers, waiting for the code tasks in flight; a canceled task's work is dropped
-2. **deliver** — messages between Mikhail's Telegram and the threads (`messages.jsonl` is the queue)
+2. **deliver** — messages between Mikhail's Telegram and the threads (`messages.jsonl` is the queue). Each
+   message is counted as delivered before it is handed on, so one that fails half-way is lost once and
+   never sent again; the failure is logged and told to the planner at its next review. A repeated message
+   is damage to Mikhail no one can take back, a lost one he can be told about
 3. **dispatch** — `todo` tasks whose blockers are done go to an agent by type, urgent first, while a slot is
    free; the brief carries the task's amendments, its epic and the handoffs of the tasks it waited on
 4. **review** — every 15 minutes the planner gets every open epic with its age and its sub-tasks by status,
@@ -25,6 +28,15 @@ then ticks every 10 seconds:
    the board gives up on it, archives it, drops its worktree and the task is redone by a copy, and the
    planner hears it at its next review. A planner, a lead or the secretary that will not come back ends
    the run instead
+
+A tick that raises is skipped, not fatal: the other side may answer at the next one, and a fault of the
+board's own code costs one tick's work rather than the run — it is logged with its traceback, so the log
+says where it is. Only a step that keeps failing for the whole `OUTAGE` (5 minutes) ends the run. The
+board says so itself through `bb notify` (`factory/tools/notify.py`): `digest` when it recovers from a
+failing tick, `telegram` when it gives up, one dedupe key per run. `TRANSIENT` — what may go through next
+time — is `URLError`, `OSError`, `subprocess.TimeoutExpired` and `Remote`, the error `bb.py` and
+`telegram.py` raise when the other side answers badly; a bare `RuntimeError` from the factory's own code
+is a bug, not weather.
 
 A thread the board archives takes what it started with it: every process whose environment carries its
 `BB_THREAD_ID` is killed (`factory/tools/processes.py`), so no server outlives its agent on its port.
@@ -78,7 +90,9 @@ Two kinds, do not confuse them:
   run's workdir, created when the workdir has none),
   `telegram.py` (the bot chat with Mikhail: his text, his voice as text, his files into the run's `inbox/`,
   the secretary's files to him), `voice.py` (speech to text with `transcribe-cli` and the GigaAM model
-  under `~/.local`), `messages.py` (the conversation file), `processes.py` (what a thread left running).
+  under `~/.local`), `messages.py` (the conversation file), `processes.py` (what a thread left running),
+  `notify.py` (`bb notify`: the board's own voice when its run is in trouble), `remote.py` (`Remote`, the
+  one error that means the other side).
 
 ## State — `factory/state.py`
 

@@ -6,6 +6,7 @@ import urllib.request
 from pathlib import Path
 
 from factory.state import CURRENT, SETTINGS, TOKEN_FILE
+from factory.tools.remote import Remote
 from factory.tools.voice import Voice
 
 API = "https://api.telegram.org/bot{token}/{method}"
@@ -36,7 +37,7 @@ class Telegram:
         with urllib.request.urlopen(request, timeout=30) as response:
             answer = json.load(response)
         if not answer["ok"]:
-            raise RuntimeError(f"telegram {method}: {answer}")
+            raise Remote(f"telegram {method}: {answer}")
         return answer["result"]
 
     def state(self) -> dict:
@@ -66,7 +67,7 @@ class Telegram:
                                API.format(token=token(self.token_file), method=method)],
                               capture_output=True, text=True, timeout=120)
         if done.returncode != 0 or not json.loads(done.stdout or "{}").get("ok"):
-            raise RuntimeError(f"telegram {method} {file.name}: {done.stdout or done.stderr}")
+            raise Remote(f"telegram {method} {file.name}: {done.stdout or done.stderr}")
 
     def replies(self) -> list[str]:
         # what Mikhail wrote since the last read, his voice as text, his files as paths; the offset is stored

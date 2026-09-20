@@ -20,8 +20,11 @@ class FakeTelegram:
         self.files: list[str] = []
         self.incoming = list(incoming)
         self.unsendable: list[str] = []  # what the bot refuses, as a screenshot in a dropped worktree is
+        self.unreachable = ""  # the text whose send fails outright, as a bot with no chat does
 
     def send(self, text: str, files: list[str] = ()) -> list[str]:
+        if text == self.unreachable:
+            raise RuntimeError("nobody has written to the bot yet")
         self.sent.append(text)
         self.files.extend(files)
         return [f"telegram sendPhoto {f}: no such file" for f in files if f in self.unsendable]
@@ -33,8 +36,11 @@ class FakeTelegram:
 class FakeThreads:
     def __init__(self):
         self.told: list[tuple[str, str]] = []
+        self.deaf: set[str] = set()  # threads bb will not take a message for
 
     def tell(self, thread: str, text: str, mode: str = "queue") -> None:
+        if thread in self.deaf:
+            raise RuntimeError(f"bb thread tell {thread}: no such thread")
         self.told.append((thread, text))
 
 
@@ -96,6 +102,30 @@ def test_a_file_that_will_not_send_does_not_stop_the_run_or_resend_the_text(boar
     assert board.telegram.sent == ["Here is how it looks"]
     assert board.since_review == ["a file the secretary sent Mikhail did not reach him: "
                                   "telegram sendPhoto /tmp/gone.png: no such file"]
+
+
+def test_a_message_that_will_not_send_is_not_sent_twice_and_does_not_hold_up_the_next(board: Board) -> None:
+    board.telegram.unreachable = "first"
+    write_message("secretary", "human", "first")
+    write_message("secretary", "human", "second")
+
+    board.deliver()
+    board.deliver()
+
+    assert board.telegram.sent == ["second"]
+    assert board.since_review == ["a message the secretary sent human did not go: "
+                                  "nobody has written to the bot yet"]
+
+
+def test_a_thread_that_will_not_take_a_message_does_not_hold_up_the_others(board: Board) -> None:
+    board.threads.deaf.add(PLANNER)
+    write_message("human", "planner", "a word for the planner")
+    write_message("human", "secretary", "a word for the secretary")
+
+    board.deliver()
+
+    assert [thread for thread, _ in board.threads.told] == [SECRETARY]
+    assert len(board.since_review) == 1
 
 
 def test_his_answer_wakes_the_secretary(board: Board) -> None:

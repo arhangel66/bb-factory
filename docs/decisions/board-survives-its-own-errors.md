@@ -57,17 +57,18 @@ which it now is, and a way to not restart a run that ended on purpose.
 
 ## Steps
 
-- [ ] `deliver()` per message: count first, act in a `try`, a failure is a log line and a
+- [x] `deliver()` per message: count first, act in a `try`, a failure is a log line and a
   `since_review` note. The wake loop the same way. Tests: a message whose send raises is not sent twice
   and does not stop the ones after it; a thread that will not take a message does not stop the others.
-- [ ] `Remote` in `factory/tools/`, raised by `bb.py` and `telegram.py` where they now raise
-  `RuntimeError`; `TRANSIENT` becomes `(URLError, OSError, subprocess.TimeoutExpired, Remote)`. Test:
-  a `RuntimeError` from the factory's own code is not retried as an outage.
-- [ ] `serve()`: a non-transient error logs its traceback and the tick is skipped, not fatal; the run
+- [x] `Remote` in `factory/tools/`, raised by `bb.py` and `telegram.py` where they now raise
+  `RuntimeError`; `TRANSIENT` becomes `(URLError, OSError, subprocess.TimeoutExpired, Remote)`. The two
+  `RuntimeError`s telegram.py keeps are configuration — no token, no chat — and stay what they are. Test:
+  a fault of the board's own is logged with the traceback that says where it is, the other side's is not.
+- [x] `serve()`: a non-transient error logs its traceback and the tick is skipped, not fatal; the run
   ends when a step has failed for the whole `OUTAGE`. Test: a tick that raises once keeps the run alive,
   a tick that raises for longer than `OUTAGE` ends it.
-- [ ] `bb notify` from the board: `digest` on the first error it recovered from, `telegram` on giving
+- [x] `bb notify` from the board: `digest` on the first error it recovered from, `telegram` on giving
   up, `dedupe_key` per run. Test: the fake notifier hears both.
-- [ ] `docs/architecture/overview.md`: the tick is a sequence of independent items, not one transaction.
+- [x] `docs/architecture/overview.md`: the tick is a sequence of independent items, not one transaction.
 - [ ] Seen on a live run: an agent hands the board a path that is not there, the board says so and the
   run goes on.

@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 
 from factory.roles import Model, Thinking
+from factory.tools.remote import Remote
 from factory.tools.processes import kill_processes_of_thread
 
 SECTION = "sec_62zku3gn5a"  # sidebar section "Factory · агенты" that holds every thread of a run
@@ -16,7 +17,7 @@ MAX_RETRIES = 3
 def bb(*args: str, timeout: int = 60) -> dict:
     done = subprocess.run(["bb", *args, "--json"], capture_output=True, text=True, timeout=timeout)
     if done.returncode != 0:
-        raise RuntimeError(f"bb {' '.join(args)}: {done.stderr.strip() or done.stdout.strip()}")
+        raise Remote(f"bb {' '.join(args)}: {done.stderr.strip() or done.stdout.strip()}")
     return json.loads(done.stdout)
 
 
