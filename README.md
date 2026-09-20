@@ -7,7 +7,18 @@ agents in parallel worktrees, merges what they finish, asks you what only you ca
 Every agent is a [bb](https://getbb.app) thread. The factory owns the board and the merges; bb owns the
 threads and the models.
 
+This file is the door. Everything else is in `docs/`, an [OKF](https://github.com/inkeep/open-knowledge-skills)
+bundle: **[docs/index.md](docs/index.md)** is the way in, and every directory below it has an index of its
+own. Nothing here is repeated there — if you want to know how a part works, follow the link to it.
+
+## What it looks like running
+
 ![the timeline of a run](factory/ui/timeline.png)
+
+Nobody talks to anybody directly: every word goes through the board, which is why a run can be replayed
+from its files and picked back up after its board is gone. The topology and one run as a sequence are the
+two diagrams in [docs/architecture/overview.md](docs/architecture/overview.md), which is also where the
+roles, the tick, the tools and the state files are described.
 
 ## A run
 
@@ -21,33 +32,8 @@ run(goal, power_real, Path.home() / "w/learning/meditate", slots=10, kit=IOS)
 .venv/bin/python -m factory.ui.serve         # the timeline of the run, live, on :8877
 ```
 
-The board writes everything it knows to `state/runs/<started>/` — the tasks, the intents the agents
-appended, the messages, the timeline, what each thread cost. `Board.resume()` picks a run back up after
-its board is gone.
-
-## How the work is split
-
-| role | takes | threads |
-|---|---|---|
-| planner | the goal | one per run |
-| lead | an `epic`, and splits it | one per epic |
-| worker | a `code` task | one per task, in a git worktree of its own |
-| tester | a `test` task | one per task, in the project itself |
-| secretary | an `ask` task; the only one who writes to you | one per run |
-
-Agents never edit a task. A task is created once and a change is an amendment appended to it, so no agent
-can act on a stale view of the board. A worker's handoff merges its worktree into the project and runs the
-project's own check before the task counts as done.
-
-You are reached through Telegram: the secretary sends the questions and the screenshots, hears your voice
-messages as text, and passes your files on. Everything else the factory decides for itself.
-
-## What it has built
-
-- `ios-kit` — the factory's own ground for iOS work: skills tried and kept, a starter, a measured
-  build-test-tap loop on one Mac.
-- Meditate — an iPhone app that plays guided meditations, with the titles transcribed from the audio, an
-  icon family generated against a reference, and Apple Health. 41 tasks, six hours, 47 threads.
+Everything the board knows goes to `state/runs/<started>/`, and `Board.resume()` picks a run back up
+after its board is gone.
 
 ## Getting started
 
@@ -64,14 +50,16 @@ works, and the secretary has nobody to ask.
 
 `do.py` runs one agent on one task with no board, for trying a prompt.
 
-## The documentation
+## What it has built
 
-`docs/` is an [OKF](https://github.com/inkeep/open-knowledge-skills) bundle — start at
-[docs/index.md](docs/index.md) and follow the index files down.
+- `ios-kit` — the factory's own ground for iOS work: skills tried and kept, a starter, a measured
+  build-test-tap loop on one Mac. [The plan and what it cost](docs/decisions/ios-kit-run.md).
+- Meditate — an iPhone app that plays guided meditations, with the titles transcribed from the audio, an
+  icon family generated against a reference, and Apple Health. 41 tasks, six hours, 47 threads.
+  [What the run taught](docs/decisions/meditate-run-lessons.md).
 
-- [architecture/](docs/architecture/index.md) — the parts and how a run goes through them
-- [decisions/](docs/decisions/index.md) — every plan that shaped it, in the order it was made, with the
-  boxes it ticked; the run-lesson files are the honest ones
+The run-lesson files in [docs/decisions/](docs/decisions/index.md) are the honest ones: every plan that
+shaped the factory is there in the order it was made, with the boxes it ticked and the ones it did not.
 
 ## License
 

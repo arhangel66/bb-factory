@@ -1,5 +1,38 @@
 # Overview
 
+## The shape
+
+Nobody talks to anybody directly. Every word between Mikhail, the planner, the leads and the workers goes
+through the board, which is why a run can be replayed from its files and resumed after its board is gone.
+
+```mermaid
+flowchart LR
+    M["Mikhail · Telegram"]
+    S["secretary"]
+    P["planner"]
+    B(["the board · a tick every 10 s"])
+    F[("the run · tasks.json · intents · messages · events")]
+    L["lead · one per epic"]
+    W["worker · one per code task, in a worktree"]
+    T["tester · one per test task, in the project"]
+    R[("the project · a git repository")]
+
+    M -->|"text, voice, a file"| B
+    B -->|"what the secretary wrote"| M
+    B -->|"an ask task, his answer"| S
+    S -->|"contact_human, tell_planner"| B
+    B -->|"the goal, every handoff, the review"| P
+    P -->|"create_task, amend_task, report"| B
+    B --- F
+    B -->|"an epic"| L
+    L -->|"sub-tasks"| B
+    B -->|"a code task"| W
+    B -->|"a test task"| T
+    W -->|"handoff"| B
+    T -->|"handoff"| B
+    B -->|"merges every worktree"| R
+```
+
 ## A run
 
 `factory/construct.py` wires the services and starts a `Board` with a goal and a working directory.
@@ -52,6 +85,37 @@ out of the archive the old board put them in, and `costs.json` is read back so i
 Agents never write a task: a task is created once, its text stays as it was, and a change is an amendment
 appended to it (`amend_task`) — or a cancel. So no agent can act on a stale view of the board — see
 [../decisions/own-tracker.md](../decisions/own-tracker.md).
+
+## One run, in the order it happens
+
+```mermaid
+sequenceDiagram
+    participant M as Mikhail
+    participant S as secretary
+    participant B as board
+    participant P as planner
+    participant W as worker
+
+    B->>P: the goal
+    P-->>B: create_task, as an intent
+    Note over B: fold — the intents become tasks
+    B->>W: the brief, in a worktree of its own
+    W-->>B: handoff — done, noticed, left
+    Note over B: merge the worktree, run the project's check
+    B->>P: woken with the handoff
+    loop every 15 minutes
+        B->>P: review — open epics, what went wrong since
+    end
+    P-->>B: an ask task
+    B->>S: the question
+    S->>M: one message, in Russian
+    M->>S: his answer
+    S-->>B: handoff — his words first, then what they mean
+    B->>P: woken with it
+    P-->>B: report
+    B->>S: the report
+    S->>M: retold, never forwarded
+```
 
 ## Roles — `factory/roles/`
 
