@@ -28,7 +28,7 @@ shape with a tenth of its code, because the factory is one bot, one chat, one pe
 ## The shape
 
 ```
-Mikhail --voice/photo/document--> Telegram.replies(inbox) --text with the transcript or the path-->
+Mikhail --voice/photo/document--> Telegram.replies() --text with the transcript or the path-->
     messages.jsonl (human -> secretary) --wake--> the secretary
 secretary --contact_human(text, wait_minutes, files)--> messages.jsonl --board tick--> Telegram.send(text, files)
 ```

@@ -62,7 +62,8 @@ Two kinds, do not confuse them:
   `show_task`, `handoff`, `contact_human`, `tell_planner`, `report`. They read `tasks.json` and append to `intents.jsonl`
   and `messages.jsonl`; none of them changes a task. `TOOLS_BY_ROLE` in `factory/roles/` says which role
   gets which; the board writes it to `state/roles.json` and the extension reads it when a thread starts.
-- **The board's tools** — `factory/tools/`: `bb.py` (threads through the bb CLI),
+- **The board's tools** — `factory/tools/`: `bb.py` (threads through the bb CLI, in the bb project of the
+  run's workdir, created when the workdir has none),
   `telegram.py` (the bot chat with Mikhail: his text, his voice as text, his files into the run's `inbox/`,
   the secretary's files to him), `voice.py` (speech to text with `transcribe-cli` and the GigaAM model
   under `~/.local`), `messages.py` (the conversation file), `processes.py` (what a thread left running).

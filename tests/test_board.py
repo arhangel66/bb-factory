@@ -25,7 +25,10 @@ class FakeThreads:
         self.unarchived: list[str] = []
         self.dead: set[str] = set()
 
-    def spawn(self, title: str, prompt: str, model: Model, thinking: Thinking, path: Path) -> str:
+    def project_for(self, workdir: Path) -> str:
+        return "proj_fake"
+
+    def spawn(self, title: str, prompt: str, model: Model, thinking: Thinking, path: Path, project: str) -> str:
         self.spawned.append(title)
         self.prompts.append(prompt)
         return f"thr_{len(self.spawned)}"

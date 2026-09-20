@@ -50,6 +50,7 @@ class Board:
         self.linger = linger  # after the report the board goes on: Mikhail talks to the run through the secretary
         self.planner = ""
         self.secretary = ""
+        self.project = ""  # the bb project of the workdir: where the run's threads are made
         self.agents: dict[str, dict] = {}  # thread -> who runs in it, as the timeline names them
         self.alive: set[str] = set()  # threads spawned and not archived yet
         self.costs: dict[str, dict] = {}  # thread -> what it cost, complete once it is archived; written to COSTS
@@ -61,7 +62,7 @@ class Board:
         self.since_review: list[str] = []  # what went wrong since: the next review tells the planner
 
     def spawn(self, agent: AgentConfig, role: Role, title: str, text: str, path: Path) -> str:
-        thread = self.threads.spawn(title, text, agent.model, agent.thinking, path)
+        thread = self.threads.spawn(title, text, agent.model, agent.thinking, path, self.project)
         self.admit(thread, agent, role)
         return thread
 
@@ -96,6 +97,7 @@ class Board:
     def start(self, goal: str) -> None:
         # the goal is a message to the planner; the run is a directory of its own from here on
         self.workspace.prepare()
+        self.project = self.threads.project_for(self.workspace.workdir)
         save_tools_by_role()
         started = datetime.now().strftime("%Y-%m-%d-%H%M%S")
         start_run(started, self.workspace.workdir)
@@ -328,6 +330,7 @@ class Board:
         # archive, the tasks are as tasks.json left them, and the board lingers for Mikhail's messages
         run = json.loads(RUN_FILE.read_text())
         save_tools_by_role()  # the tools may have changed since the run started
+        self.project = self.threads.project_for(self.workspace.workdir)
         self.tracker.tasks = json.loads(self.tracker.tasks_file.read_text())
         self.tracker.folded = len(self.tracker.intents_file.read_text().splitlines())
         self.relayed = len(messages())
