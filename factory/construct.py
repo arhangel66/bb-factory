@@ -143,6 +143,13 @@ Input: `content/` holds the meditations as mp3 files, one meditation per file â€
 Practico, two screens, described there. The audio is Russian; the app speaks Russian, the code and the
 docs English.
 
+Design first, code after: before any app code, three design variants of the app â€” for each, the list screen
+and the player as images generated the way item 2 says, one look per variant (colors, ring, glyph style,
+typography), each a real answer to the Practico reference, not three shades of one. The secretary sends
+the three to Mikhail as files with one line each and asks which he likes; the coding tasks wait for his
+choice, and go on with the variant he named, with his remarks. If he is silent for two hours, the
+planner picks and says so in the report.
+
 Product:
 1. Catalog: every mp3 in `content/` is a meditation with a title, a one-line description, a duration and an
    icon. The title and the description come from the audio itself: transcribe its first minutes locally
