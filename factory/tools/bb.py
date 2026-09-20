@@ -56,8 +56,9 @@ class Threads:
         )
         return thread["id"]
 
-    def tell(self, thread: str, text: str) -> None:
-        bb("thread", "tell", thread, text, "--mode", "queue")
+    def tell(self, thread: str, text: str, mode: str = "queue") -> None:
+        # queue: read when the current turn is over; steer: read now, in the middle of the turn
+        bb("thread", "tell", thread, text, "--mode", mode)
 
     def show(self, thread: str) -> dict:
         return bb("thread", "show", thread)["thread"]  # status, title, createdAt, archivedAt (ms), ...

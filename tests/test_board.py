@@ -24,6 +24,7 @@ class FakeThreads:
         self.archived: list[str] = []
         self.unarchived: list[str] = []
         self.dead: set[str] = set()
+        self.modes: list[str] = []
 
     def project_for(self, workdir: Path) -> str:
         return "proj_fake"
@@ -33,8 +34,9 @@ class FakeThreads:
         self.prompts.append(prompt)
         return f"thr_{len(self.spawned)}"
 
-    def tell(self, thread: str, text: str) -> None:
+    def tell(self, thread: str, text: str, mode: str = "queue") -> None:
         self.told.append((thread, text))
+        self.modes.append(mode)
 
     def archive(self, thread: str) -> None:
         self.archived.append(thread)
@@ -354,6 +356,7 @@ def test_an_amendment_wakes_the_agent_at_work_on_the_task(board: Board) -> None:
 
     thread, text = board.threads.told[-1]
     assert thread == "thr_1" and "drop the drag check" in text and "the planner adds" in text
+    assert board.threads.modes[-1] == "steer"  # read in the middle of the work, not queued behind it
     assert [e["action"] for e in events(board) if e["kind"] == "task"][-1] == "amended"
 
 

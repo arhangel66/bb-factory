@@ -32,7 +32,7 @@ class FakeThreads:
     def __init__(self):
         self.told: list[tuple[str, str]] = []
 
-    def tell(self, thread: str, text: str) -> None:
+    def tell(self, thread: str, text: str, mode: str = "queue") -> None:
         self.told.append((thread, text))
 
 

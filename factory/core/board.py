@@ -139,7 +139,8 @@ class Board:
                 emit(agent, "task", "amended", task["key"], intent["text"], type=task["type"], parent=task["parent"])
                 log(f"{task['key']} amended by the {agent['role']}: {intent['text'].splitlines()[0]!r}")
                 if task["thread"] in self.alive:  # at work already: its agent reads the change now, not a waiting task's brief
-                    self.threads.tell(task["thread"], prompt("amended", key=task["key"], who=agent["role"], text=intent["text"]))
+                    self.threads.tell(task["thread"], prompt("amended", key=task["key"], who=agent["role"], text=intent["text"]),
+                                      mode="steer")  # in the middle of its work, not after: the change is about that work
             elif intent["intent"] == "handoff":
                 self.bring_home(task, intent)
         for stray in self.tracker.strays:
