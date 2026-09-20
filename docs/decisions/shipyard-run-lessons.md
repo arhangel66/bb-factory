@@ -62,6 +62,14 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
   of stage 1 blocked the merge of the estimate fix (FAB-112 → FAB-114). The board now commits what the
   tests left in the project before it merges; both times the stray files were handled by hand so the
   redo could land.
+- Workers and testers leave their servers running after the handoff: at 05:35 four `uv run serve` of
+  finished tasks (FAB-45, 99, 118, 134) still held ports under deleted worktrees, one of them 8000 — the
+  URL the README names. Killed by hand before the morning.
+- The result, 05:33: the planner reported after 7 h 19 min, 87 minutes before the deadline. 142 tasks
+  (108 done, 34 canceled, 10 of them by conflicts), 20 epics, 127 threads, 26.9 agent-hours, 9.2 M tokens;
+  139 commits, ~10 000 lines of app and tests, 73 tests green, five stages each run to its three rounds,
+  KNOWN_ISSUES.md honest about what was not verified (pointer drag above all). The secretary's Telegram
+  line was accurate.
 - Master briefly did not start (the seed referenced a table a canceled task had created); a lead caught it
   from a red handoff and made FAB-50 "restore clean database startup". Nothing in the board checks that
   master runs after a merge.
@@ -75,6 +83,9 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
       [green-handoff.md](green-handoff.md) (a `handoff` that refuses until green) is still open
 - [x] A task canceled while running stops its agent at once: the thread is archived and the worktree
       dropped in the same tick, not at the handoff that nobody reads
+- [ ] The board stops what a task started: a worker's or tester's server dies with its thread (kill the
+      process group of the thread, or the tester is told to stop its server and the worker never to leave
+      one)
 - [ ] Cut the project so tasks do not share files: the foundation epic must leave one router module and one
       models module per area, registered by a loop, migrations named by task key or timestamp instead of a
       running number, and the lead names in every task the files it owns.
