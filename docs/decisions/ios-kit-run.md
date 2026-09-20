@@ -53,6 +53,19 @@ for a clean restart with what he had lying around and with a stronger crew:
   adds one; the stray worker is archived; and when a board is stopped by hand, every thread in
   `tasks.json` is archived too, not just the two in `run.json`.
 
+## Next: the first app on the kit
+
+Mikhail's ask while the kit run was going: when it is done, a meditation app for his iPhone — his
+guided meditations as mp3 files (one so far), a list with search and favorites, a player, a mindful
+session written to Apple Health when one is finished, titles and one-family icons derived from the audio,
+a rebuild with a new set of files, and the look of Practico (two screenshots). The goal is `meditate` in
+`construct.py`; the project `~/w/learning/meditate` is seeded with `AGENTS.md` (the kit is the way),
+`docs/reference/` with the screenshots described, and `content/meditation_small.mp3`.
+
+- [ ] When the kit run reports: stop its board (SIGTERM), archive every thread of the run, switch
+  `construct.py` to `run(meditate, …)`, launch. The kit's report says whether the kit is usable at all;
+  if it is not, the meditation run waits.
+
 ## After the run
 
 - [ ] Lessons into `shipyard-run-lessons.md` or a file of their own: what the planner did with a tester it

@@ -128,5 +128,47 @@ parallel on one Mac: every agent boots a simulator device of its own (`xcrun sim
 is done), never a shared one, and keeps derived data in its own tree. Mikhail is reachable through the
 secretary but slow to answer: decide yourself where you can.
 """
+    # the run after ios-kit reports: the first app built with the kit
+    meditate = """\
+Build "Meditate": an iOS app for Mikhail's iPhone that plays his guided meditations. Report by 20:00 today;
+an honest partial report beats a late one.
+
+Use ios-kit at /Users/mikhail/w/learning/ios-kit for everything: read its `docs/index.md` first, make the
+app with its starter, build, run, test and drive it the way its docs say, and copy its `.agents/skills/`
+into this project's. What the kit lacks is fixed in the kit — a task that works in that repository and
+commits there — never worked around here; the report says what the kit gained.
+
+Input: `content/` holds the meditations as mp3 files — one today, `meditation_small.mp3`, 92 minutes, no
+tags; more will come. The look to match is in `docs/reference/`: Practico, two screens, described there.
+The audio is most likely Russian; the app speaks Russian, the code and the docs English.
+
+Product:
+1. Catalog: every mp3 in `content/` is a meditation with a title, a one-line description, a duration and an
+   icon. The title and the description come from the audio itself: transcribe its first minutes locally
+   (Apple's Speech framework from a Swift script, whisper.cpp from brew, whatever is quickest; the Mac has
+   ffmpeg) and name it as a person would — a file name is never a title. The catalog is a file in the repo
+   a person can edit; entries for new files are drafted by one command and reviewed by hand.
+2. Icons: one per meditation, one family like the reference — a round ring with a green-to-blue gradient and
+   a simple line glyph that fits the meditation; SF Symbols or vector drawn in code, no raster images.
+3. Screens: the list (sections, rows like the reference, a checkmark on what was completed today); quick
+   search that filters as you type; favorites — a heart on a row and a view of them; the player — a
+   full-screen gradient, the ring with progress and the play button, the time left, scrubbing, volume;
+   playback goes on with the screen locked and shows on the lock screen with controls; a meditation played to
+   its end is marked completed. Favorites and completions survive a relaunch.
+4. Apple Health: when a meditation plays to its end, a mindful session of its duration is written to
+   HealthKit, permission asked the first time; on the simulator the Health app shows the entry.
+5. New files: drop mp3s into `content/`, run one command — the catalog drafts entries for the new ones and
+   the app is rebuilt with them bundled. The README says it in three lines.
+6. To the iPhone: the app cannot be signed here (no Apple ID). Every setting that needs Mikhail is already
+   in the project — bundle id, the HealthKit capability, background audio — and the README says exactly what
+   he does: open the project, pick his team, run on the phone. Everything else is proven on the simulator by
+   a tester with the kit's tools: every screen against the reference, a full play of a short file (cut a
+   30-second one from the big file for the tests, never ship it), the Health entry, favorites, search.
+
+Stack: SwiftUI, AVFoundation, HealthKit, iOS 26, no third-party packages. Agents run in parallel on one
+Mac: every agent boots a simulator device of its own and deletes it when done; derived data stays in its
+own tree. Mikhail is reachable through the secretary but slow to answer: decide yourself where you can.
+"""
     run(task, power_real, Path.home() / "w/learning/ios-kit", slots=4)  # Xcode builds are heavy: four at once
+    # run(meditate, power_real, Path.home() / "w/learning/meditate", slots=4)  # after the ios-kit board is stopped
     # resume(power_real, slots=4)  # re-attach to the run state/current points at, after its board is gone
