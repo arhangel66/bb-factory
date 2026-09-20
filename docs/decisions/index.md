@@ -20,3 +20,4 @@ Plans in the order they were made; checkboxes show what was done.
 - [stopped-agents](stopped-agents.md) — an agent whose turn failed or ended without a handoff is noticed, started again, and its task redone when it does not come back
 - [secretary-planner-link](secretary-planner-link.md) — the secretary asks the planner how the work goes and comes back to Mikhail with the answer: `tell_secretary`, the report told apart by its status
 - [board-survives-its-own-errors](board-survives-its-own-errors.md) — one failing item fails alone: a message counted before it is sent, `TRANSIENT` narrowed to what is really remote, a tick that raises does not end the run, and the board says when it is in trouble
+- [meditate-run-lessons](meditate-run-lessons.md) — what the first app built with the kit cost the board: a resume that left the agents at work archived, one failed intent that swallowed a handoff, the run's costs wiped, and the agents' clocks four hours behind

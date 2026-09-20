@@ -139,29 +139,39 @@ class Board:
         # the agents' intents since the last tick: a create or a cancel is noted, a handoff brings the work home;
         # only this board's agents count — a thread it never spawned is a leftover of an earlier run
         for intent in self.tracker.fold(known=self.agents):
-            task = self.tracker.tasks[intent["key"]]
-            agent = self.agent_of(intent["thread"], task)
-            if intent["intent"] == "create":
-                emit(agent, "task", "created", task["key"], task["title"], type=task["type"], parent=task["parent"])
-                log(f"{task['key']} «{task['title']}» created by the {agent['role']}")
-            elif intent["intent"] == "cancel":
-                emit(agent, "task", "canceled", task["key"], type=task["type"], parent=task["parent"])
-                log(f"{task['key']} canceled by the {agent['role']}: {intent['why']!r}")
-                self.since_review.append(f"{task['key']} canceled by the {agent['role']}: {intent['why']!r}")
-                if task["thread"] in self.alive:  # canceled while running: its agent stops now, not at its handoff
-                    self.release(task)
-                    self.workspace.drop(task["key"])
-            elif intent["intent"] == "amend":
-                emit(agent, "task", "amended", task["key"], intent["text"], type=task["type"], parent=task["parent"])
-                log(f"{task['key']} amended by the {agent['role']}: {intent['text'].splitlines()[0]!r}")
-                if task["thread"] in self.alive:  # at work already: its agent reads the change now, not a waiting task's brief
-                    self.tell(task["thread"], prompt("amended", key=task["key"], who=agent["role"], text=intent["text"]),
-                              mode="steer")  # in the middle of its work, not after: the change is about that work
-            elif intent["intent"] == "handoff":
-                self.bring_home(task, intent)
+            # the tracker has applied the intent already; one the board cannot act on is lost alone, and the
+            # planner hears it at the review. The rest of the batch — a handoff behind it — goes on
+            try:
+                self.act_on(intent)
+            except Exception as error:
+                log(f"the {intent['intent']} of {intent['key']} did not go through: {error}")
+                self.since_review.append(f"the {intent['intent']} of {intent['key']} did not go through: {error}")
         for stray in self.tracker.strays:
             log(f"ignored {stray['intent']} {stray['key']} from {stray['thread']}: not an agent of this run")
         self.tracker.strays.clear()
+
+    def act_on(self, intent: dict) -> None:
+        # what one folded intent means for the board: the timeline, the log, and the agents it touches
+        task = self.tracker.tasks[intent["key"]]
+        agent = self.agent_of(intent["thread"], task)
+        if intent["intent"] == "create":
+            emit(agent, "task", "created", task["key"], task["title"], type=task["type"], parent=task["parent"])
+            log(f"{task['key']} «{task['title']}» created by the {agent['role']}")
+        elif intent["intent"] == "cancel":
+            emit(agent, "task", "canceled", task["key"], type=task["type"], parent=task["parent"])
+            log(f"{task['key']} canceled by the {agent['role']}: {intent['why']!r}")
+            self.since_review.append(f"{task['key']} canceled by the {agent['role']}: {intent['why']!r}")
+            if task["thread"] in self.alive:  # canceled while running: its agent stops now, not at its handoff
+                self.release(task)
+                self.workspace.drop(task["key"])
+        elif intent["intent"] == "amend":
+            emit(agent, "task", "amended", task["key"], intent["text"], type=task["type"], parent=task["parent"])
+            log(f"{task['key']} amended by the {agent['role']}: {intent['text'].splitlines()[0]!r}")
+            if task["thread"] in self.alive:  # at work already: its agent reads the change now, not a waiting task's brief
+                self.tell(task["thread"], prompt("amended", key=task["key"], who=agent["role"], text=intent["text"]),
+                          mode="steer")  # in the middle of its work, not after: the change is about that work
+        elif intent["intent"] == "handoff":
+            self.bring_home(task, intent)
 
     def bring_home(self, task: dict, handoff: dict) -> None:
         # the task's agent is through: its work is merged, its thread goes, whoever planned the task is woken.
@@ -236,7 +246,8 @@ class Board:
         # is part of, the handoffs it waited on
         context = ""
         for amendment in task.get("amendments", []):
-            context += f"\n\n## Added at {amendment['at'][11:16]}\n{amendment['text']}"
+            at = datetime.fromisoformat(amendment["at"]).astimezone()  # an agent's tool writes UTC, the board local
+            context += f"\n\n## Added at {at:%H:%M}\n{amendment['text']}"
         if task["parent"]:
             epic = self.tracker.tasks[task["parent"]]
             context += f"\n\n## Epic {epic['key']} «{epic['title']}»\n{epic['description']}"
@@ -344,7 +355,7 @@ class Board:
         else:
             thread = self.secretary if m["to"] == Role.secretary else self.planner
             sender = "Mikhail" if m["from"] == "human" else f"the {m['from']}"
-            when = datetime.fromisoformat(m["at"]).strftime("%H:%M:%S")  # the secretary tells his answer from what he said before it
+            when = datetime.fromisoformat(m["at"]).astimezone().strftime("%H:%M:%S")  # the secretary tells his answer from what he said before it
             self.wake(thread, f"Message from {sender} at {when}:\n{m['text']}\n{m.get('details', '')}".strip(), floor)
         log(f"message {m['from']} → {m['to']}: {m['text'].splitlines()[0]!r}")
 
@@ -412,6 +423,7 @@ class Board:
         self.tracker.tasks = json.loads(self.tracker.tasks_file.read_text())
         self.tracker.folded = len(self.tracker.intents_file.read_text().splitlines())
         self.relayed = len(messages())
+        self.costs = json.loads(COSTS.read_text()) if COSTS.exists() else {}  # the earlier board's threads stay counted
         self.linger = True
         for role in (Role.planner, Role.secretary):
             self.threads.unarchive(run[role])
@@ -423,6 +435,7 @@ class Board:
         for task in self.tracker.tasks.values():
             if task["status"] == "in_progress" and task["thread"] and task["thread"] not in self.agents:
                 role = ROLE_BY_LABEL[task["type"]]
+                self.threads.unarchive(task["thread"])  # the board that went archived them; an archived thread takes no word
                 self.admit(task["thread"], self.config[role], role)
                 if role == Role.lead:
                     self.leads[task["key"]] = task["thread"]

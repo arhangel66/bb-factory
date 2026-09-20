@@ -445,10 +445,29 @@ def test_a_resumed_board_takes_back_the_agents_at_work(board: Board, tmp_path: P
     resumed.resume()
 
     assert {"thr_1", "thr_2"} <= resumed.alive
+    assert set(resumed.threads.unarchived) == {"thr_p", "thr_s", "thr_1", "thr_2"}  # the board that went archived them all
     assert resumed.leads == {"FAB-2": "thr_2"}
     handoff(resumed)  # thr_1 hands FAB-1 off to the new board
     assert resumed.tracker.tasks["FAB-1"]["status"] == "done"
     assert resumed.threads.told[0][0] == "thr_p"  # the planner is woken with the handoff, as before the gap
+
+
+def test_a_resumed_board_keeps_what_the_run_has_cost_so_far(board: Board, tmp_path: Path,
+                                                            monkeypatch: pytest.MonkeyPatch) -> None:
+    board_module.RUN_FILE.write_text(json.dumps({"goal": "goal", "started": "2026-09-20-124557",
+                                                 "workdir": str(tmp_path), "planner": "thr_p", "secretary": "thr_s"}))
+    create_and_dispatch(board)
+    handoff(board)  # thr_1 is archived: what it cost is in costs.json
+    board.tracker.save()
+    resumed = Board(board.config, tracker=Tracker(tmp_path / "tasks.json", tmp_path / "intents.jsonl"),
+                    threads=FakeThreads(), workspace=FakeWorkspace(tmp_path), telegram=FakeTelegram())
+    monkeypatch.setattr(resumed, "serve", lambda: None)
+    resumed.resume()
+
+    resumed.admit("thr_9", resumed.config[Role.worker], Role.worker)
+    resumed.archive("thr_9")
+
+    assert set(json.loads(board_module.COSTS.read_text())) == {"thr_1", "thr_9"}
 
 
 def test_the_brief_carries_the_epic_and_the_handoffs_before_the_task(board: Board) -> None:
@@ -527,3 +546,50 @@ def test_the_review_names_every_open_epic_with_its_sub_tasks_and_what_went_wrong
     assert "- FAB-1 «build the board»: 0 minutes in, sub-tasks 1 in_progress, 1 canceled" in text  # the tick dispatched FAB-2
     assert "FAB-3 canceled by the lead: 'columns are cards'" in text
     assert "verdict per epic" in text
+
+
+def test_a_handoff_behind_an_amendment_that_did_not_go_comes_home_anyway(board: Board) -> None:
+    create_and_dispatch(board)  # FAB-1 → worker thr_1
+    write_intent(PLANNER, "create", key="FAB-2", type="epic", title="the epic", description="## Motivation\nthe why",
+                 priority="high", blocked_by=[], parent=None)
+    board.fold()
+    board.dispatch_ready()  # FAB-2 → lead thr_2
+
+    def told(thread: str, text: str, mode: str = "queue") -> None:
+        if thread == "thr_2":
+            raise Remote("bb thread tell thr_2: HTTP 409: Thread is archived")
+        FakeThreads.tell(board.threads, thread, text, mode)
+
+    board.threads.tell = told
+    write_intent(PLANNER, "amend", key="FAB-2", text="the epic changed")
+    write_intent("thr_1", "handoff", key="FAB-1", outcome="ok", summary="did it", text="all done")
+
+    board.fold()
+
+    assert board.workspace.merged == ["FAB-1"]  # the work is in the project, not merely marked done
+    assert board.threads.archived == ["thr_1"] and board.threads.told[-1][0] == PLANNER
+    assert any("the amend of FAB-2 did not go through" in line for line in board.since_review)
+
+
+def test_an_amendment_an_agent_timed_in_utc_reads_as_the_clock_said(board: Board) -> None:
+    write_intent(PLANNER, "create", key="FAB-1", type="code", title="do it", description="## Motivation\nbecause",
+                 priority="high", blocked_by=[], parent=None)
+    write_intent(PLANNER, "amend", key="FAB-1", text="drop the drag check", at="2026-09-20T12:05:48.825Z")
+    board.fold()
+
+    board.dispatch_ready()
+
+    at = datetime.fromisoformat("2026-09-20T12:05:48.825Z").astimezone()
+    assert f"## Added at {at:%H:%M}" in board.threads.prompts[-1]
+
+
+def test_a_message_an_agent_timed_in_utc_reaches_its_reader_the_same_way(board: Board) -> None:
+    board.secretary = "thr_s"
+    board.agents["thr_s"] = agent("secretary", Model.gpt_5_6_terra, "thr_s")
+    messages_module.MESSAGES.write_text(json.dumps({"at": "2026-09-20T12:05:48.825Z", "from": Role.planner,
+                                                    "to": Role.secretary, "text": "how it goes", "status": None}) + "\n")
+
+    board.deliver()
+
+    at = datetime.fromisoformat("2026-09-20T12:05:48.825Z").astimezone()
+    assert f"at {at:%H:%M:%S}" in board.threads.told[-1][1]

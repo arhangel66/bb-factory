@@ -12,7 +12,9 @@ then ticks every 10 seconds:
    merged into the project and whoever planned the task is woken (the lead of its epic, else the planner);
    work that does not merge goes back to its worker with the conflict, the worktree kept, to merge the main
    branch in and hand off again; a dead worker's task is canceled and a copy takes its place among the
-   blockers, waiting for the code tasks in flight; a canceled task's work is dropped
+   blockers, waiting for the code tasks in flight; a canceled task's work is dropped. One intent at a
+   time: one the board cannot act on is a log line and a note for the planner's review, and the intents
+   behind it in the same tick — a handoff among them — go on
 2. **deliver** — messages between Mikhail's Telegram and the threads (`messages.jsonl` is the queue). Each
    message is counted as delivered before it is handed on, so one that fails half-way is lost once and
    never sent again; the failure is logged and told to the planner at its next review. A repeated message
@@ -44,7 +46,8 @@ A thread the board archives takes what it started with it: every process whose e
 The goal is reached when the planner has reported and the secretary has passed the report on to Mikhail.
 A lingering board (the default in `construct.py`) keeps the planner and the secretary after that, so
 Mikhail's messages become more work until Ctrl-C; `Board.resume()` re-attaches to the run `state/current`
-points at after its board is gone.
+points at after its board is gone: the planner, the secretary and every agent that was at work come back
+out of the archive the old board put them in, and `costs.json` is read back so its threads stay counted.
 
 Agents never write a task: a task is created once, its text stays as it was, and a change is an amendment
 appended to it (`amend_task`) — or a cancel. So no agent can act on a stale view of the board — see
