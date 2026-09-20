@@ -1,7 +1,7 @@
 [project]
-name = "bb-coordinator"
+name = "bb-factory"
 version = "0.1.0"
-description = "Add your description here"
+description = "A board of tasks, a planner that fills it, coding agents that take them, and a secretary that talks to you"
 requires-python = ">=3.13"
 dependencies = []
 
