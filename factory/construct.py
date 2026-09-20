@@ -194,6 +194,6 @@ Stack: SwiftUI, AVFoundation, HealthKit, iOS 26, no third-party packages. Agents
 Mac: every agent boots a simulator device of its own and deletes it when done; derived data stays in its
 own tree. Mikhail is reachable through the secretary but slow to answer: decide yourself where you can.
 """
-    run(task, power_real, Path.home() / "w/learning/ios-kit", slots=4)  # Xcode builds are heavy: four at once
+    # run(task, power_real, Path.home() / "w/learning/ios-kit", slots=4)  # 06:31, four slots proved too few
     # run(meditate, power_real, Path.home() / "w/learning/meditate", slots=4)  # after the ios-kit board is stopped
-    # resume(power_real, slots=4)  # re-attach to the run state/current points at, after its board is gone
+    resume(power_real, slots=10)  # the ios-kit run of 06:31, its board stopped at 07:52 to lift the slots from 4

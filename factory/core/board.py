@@ -340,6 +340,14 @@ class Board:
             self.admit(run[role], self.config[role], role)
         self.planner, self.secretary = run[Role.planner], run[Role.secretary]
         self.shared[self.config[Role.secretary]] = self.secretary
+        # the agents at work when the board went are still at it: their tasks say who they are, and the
+        # board answers for them again — their handoffs come home, a lead gets its sub-tasks' handoffs
+        for task in self.tracker.tasks.values():
+            if task["status"] == "in_progress" and task["thread"] and task["thread"] not in self.agents:
+                role = ROLE_BY_LABEL[task["type"]]
+                self.admit(task["thread"], self.config[role], role)
+                if role == Role.lead:
+                    self.leads[task["key"]] = task["thread"]
         log(f"resumed run {run['started']}: planner {self.planner}, secretary {self.secretary}")
         self.serve()
 

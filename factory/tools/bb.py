@@ -80,7 +80,8 @@ class Threads:
         kill_processes_of_thread(thread)  # a server the agent started would outlive it and hold its port
 
     def unarchive(self, thread: str) -> None:
-        bb("thread", "unarchive", thread)
+        if self.show(thread).get("archivedAt"):  # a board killed by a signal archives nobody: the thread is still there
+            bb("thread", "unarchive", thread)
 
     def usage(self, thread: str) -> dict:
         return usage_from_log(bb("thread", "log", thread, "--all"))

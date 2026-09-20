@@ -291,6 +291,29 @@ def test_a_resumed_board_lingers_for_mikhail_after_the_report(board: Board, tmp_
     assert resumed.threads.told == []  # nothing of the old run is delivered or dispatched again
 
 
+def test_a_resumed_board_takes_back_the_agents_at_work(board: Board, tmp_path: Path,
+                                                         monkeypatch: pytest.MonkeyPatch) -> None:
+    board_module.RUN_FILE.write_text(json.dumps({"goal": "goal", "started": "2026-09-20-063122",
+                                                 "workdir": str(tmp_path), "planner": "thr_p", "secretary": "thr_s"}))
+    create_and_dispatch(board)  # FAB-1 → worker thr_1
+    write_intent(PLANNER, "create", key="FAB-2", type="epic", title="the epic", description="## Motivation\nthe why",
+                 priority="high", blocked_by=[], parent=None)
+    board.fold()
+    board.dispatch_ready()  # FAB-2 → lead thr_2
+    board.tracker.save()
+    resumed = Board(board.config, tracker=Tracker(tmp_path / "tasks.json", tmp_path / "intents.jsonl"),
+                    threads=FakeThreads(), workspace=FakeWorkspace(tmp_path), telegram=FakeTelegram())
+    monkeypatch.setattr(resumed, "serve", lambda: None)
+
+    resumed.resume()
+
+    assert {"thr_1", "thr_2"} <= resumed.alive
+    assert resumed.leads == {"FAB-2": "thr_2"}
+    handoff(resumed)  # thr_1 hands FAB-1 off to the new board
+    assert resumed.tracker.tasks["FAB-1"]["status"] == "done"
+    assert resumed.threads.told[0][0] == "thr_p"  # the planner is woken with the handoff, as before the gap
+
+
 def test_the_brief_carries_the_epic_and_the_handoffs_before_the_task(board: Board) -> None:
     write_intent(PLANNER, "create", key="FAB-1", type="epic", title="the epic", description="## Motivation\nthe why",
                  priority="high", blocked_by=[], parent=None)
