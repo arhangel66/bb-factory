@@ -109,11 +109,11 @@ class Board:
         emit(HUMAN, "message", "sent", Role.planner, goal)
         planner, secretary = self.config[Role.planner], self.config[Role.secretary]
         self.planner = self.spawn(planner, Role.planner, f"{planner.prompt} {planner.model}",
-                                  prompt(planner.prompt, goal=goal), self.workspace.agent_dir(Role.planner))
+                                  prompt(planner.prompt, goal=goal), self.workspace.agent_dir(Role.planner, Role.planner))
         # the secretary starts with the planner: every run ends with a report for it to pass on
         self.secretary = self.shared[secretary] = self.spawn(
             secretary, Role.secretary, f"{secretary.prompt} {secretary.model}", prompt(secretary.prompt),
-            self.workspace.agent_dir(secretary.prompt))
+            self.workspace.agent_dir(secretary.prompt, Role.secretary))
         RUN_FILE.write_text(json.dumps({"goal": goal, "started": started, "workdir": str(self.workspace.workdir),
                                         "kit": kit.name if kit else None,
                                         "planner": self.planner, "secretary": self.secretary}, ensure_ascii=False))
@@ -214,9 +214,9 @@ class Board:
         # a worker codes in a worktree of its task, a tester in the project itself, the rest write no code;
         # bb gives a directory to one thread at a time, so nobody shares one
         if agent.mode == "shared":
-            return self.workspace.agent_dir(agent.prompt)
+            return self.workspace.agent_dir(agent.prompt, role)
         if role == Role.lead:
-            return self.workspace.agent_dir(f"lead/{key}")
+            return self.workspace.agent_dir(f"lead/{key}", role)
         return self.workspace.worktree(key) if role == Role.worker else self.workspace.workdir
 
     def brief(self, task: dict) -> str:

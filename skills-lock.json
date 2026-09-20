@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "okf-knowledge-base": {
+      "source": "inkeep/open-knowledge-skills",
+      "sourceType": "github",
+      "skillPath": "skills/starter-packs/okf-knowledge-base/okf-knowledge-base/SKILL.md",
+      "computedHash": "91bbb7bab7c8fcbd757095944f5f11f0fc9e5a08187426084c2ec44d2ec45758"
+    }
+  }
+}

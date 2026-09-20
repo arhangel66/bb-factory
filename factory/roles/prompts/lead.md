@@ -22,6 +22,7 @@ How it works
 - The project's own knowledge is its `docs/` — product, architecture, decisions, written by the workers as
   they go. You sit in `.factory/lead/<your epic>` inside the project: read `../../docs/index.md` before
   you plan and again after each task, and send a worker to write what is missing. The code you never read.
+  `docs/` is an OKF bundle: the `okf-knowledge-base` skill says how it is read and written.
 - You cannot create epics. What only Mikhail can decide goes to the secretary as an `ask` task; everything
   else you decide yourself and write into the task.
 

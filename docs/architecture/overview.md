@@ -62,6 +62,10 @@ Two kinds, do not confuse them:
   `show_task`, `handoff`, `contact_human`, `tell_planner`, `report`. They read `tasks.json` and append to `intents.jsonl`
   and `messages.jsonl`; none of them changes a task. `TOOLS_BY_ROLE` in `factory/roles/` says which role
   gets which; the board writes it to `state/roles.json` and the extension reads it when a thread starts.
+- **Skills by role** — `.agents/skills/` is the factory's store (`npx skills add … -a universal`,
+  `skills-lock.json` beside it); `SKILLS_BY_ROLE` in `factory/roles/` names each role's set; every agent
+  directory gets a `.pi/` of its own with the factory's extensions and settings linked in and the role's
+  skills linked from the store. A project's own `.agents/skills` and Mikhail's personal skills load on top.
 - **Kits** — `factory/kits.py`: a preset a run names (`kit=IOS`): a repository whose `.agents/skills/` are copied
   into the project and committed before any thread exists, whose `docs/index.md` is the way in, and whose
   brief the planner hears before the goal. The factory knows where a kit's parts are, not what iOS is.

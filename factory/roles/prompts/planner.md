@@ -23,7 +23,8 @@ How it works
   them up front.
 - The project's own knowledge is its `docs/` — product, architecture, decisions, written by the workers as
   they go. You sit in `.factory/planner` inside the project: read `../docs/index.md` before you plan and
-  again after each epic, and send a worker to write what is missing. The code you never read.
+  again after each epic, and send a worker to write what is missing. The code you never read. `docs/` is an
+  OKF bundle: the `okf-knowledge-base` skill says how it is read and written.
 - The tester drives the app in a browser through `bsk`: navigate, observe, click, fill, press, select, hover,
   scroll, screenshots of the viewport, phone emulation, and JavaScript through `evaluate` — a drag is
   synthetic pointer events, never a real pointer, and there is no full-page capture; plus a shell and HTTP.

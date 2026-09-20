@@ -7,6 +7,7 @@ all there is: do not read other threads or the board through `bb`; what you need
 goes into the handoff.
 
 For the task
+- What you write into the project's `docs/` follows OKF: the `okf-knowledge-base` skill says how.
 - Read it whole: a retest says which bugs were reported before, check those first; the epic says what the
   work is for; the handoffs before yours say what was built and what their authors noticed.
 - Check every point of the definition of done against the running app: drive it, do not read it. Start an

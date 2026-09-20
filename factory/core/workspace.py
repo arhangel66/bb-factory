@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 from factory.kits import Kit
-from factory.roles import Role
+from factory.roles import SKILLS_BY_ROLE, Role
 from factory.state import ROOT
 
 TRUST = Path.home() / ".pi/agent/trust.json"  # {path: trusted}; outside these pi ignores .pi/ and the agent loses its tools
@@ -44,8 +44,8 @@ class Workspace:
         if kit:
             self.seed(kit)
         self.forget_worktrees()
-        self.with_tools(self.workdir)  # the tester works in the project itself
-        self.agent_dir(Role.planner)
+        self.with_tools(self.workdir, Role.tester)  # the tester works in the project itself
+        self.agent_dir(Role.planner, Role.planner)
 
     def seed(self, kit: Kit) -> None:
         # what the kit hands the project, once and committed before any thread exists, so every worktree has it:
@@ -76,10 +76,10 @@ class Workspace:
                 git(self.workdir, "worktree", "remove", "--force", line.removeprefix("worktree "), check=False)
         git(self.workdir, "worktree", "prune")
 
-    def agent_dir(self, name: str) -> Path:
+    def agent_dir(self, name: str, role: Role) -> Path:
         path = self.factory / name
         path.mkdir(parents=True, exist_ok=True)
-        return self.with_tools(path)
+        return self.with_tools(path, role)
 
     def worktree(self, key: str) -> Path:
         # a branch of its own per task, reset when the task comes back after a conflict
@@ -87,13 +87,25 @@ class Workspace:
         if path.exists() and not (path / ".git").exists():
             shutil.rmtree(path)  # an agent of a run before, dead board and all, kept writing where its worktree was
         git(self.workdir, "worktree", "add", "-B", key, str(path))
-        return self.with_tools(path)
+        return self.with_tools(path, Role.worker)
 
-    def with_tools(self, path: Path) -> Path:
-        # pi reads extensions from its cwd only, so every agent directory links back to the factory's .pi
-        link = path / ".pi"
-        if not link.exists():
-            link.symlink_to(ROOT / ".pi")
+    def with_tools(self, path: Path, role: Role) -> Path:
+        # pi reads extensions and skills from <cwd>/.pi, so every agent directory gets one: the factory's
+        # extensions and settings linked in, and the role's skills linked from the factory's store; rebuilt every
+        # time, so a name dropped from the set is gone at the next run
+        pi = path / ".pi"
+        if pi.is_symlink():
+            pi.unlink()  # before, .pi was a link to the factory's whole .pi
+        pi.mkdir(exist_ok=True)
+        for name in ("extensions", "settings.json"):
+            if not (pi / name).is_symlink():
+                (pi / name).symlink_to(ROOT / ".pi" / name)
+        skills = pi / "skills"
+        if skills.exists():
+            shutil.rmtree(skills)
+        skills.mkdir()
+        for name in SKILLS_BY_ROLE[role]:
+            (skills / name).symlink_to(ROOT / ".agents/skills" / name)
         return path
 
     def drop(self, key: str) -> None:

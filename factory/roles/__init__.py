@@ -60,6 +60,18 @@ TOOLS_BY_ROLE: dict[Role, tuple[str, ...]] = {
 }
 
 
+# the skills of .agents/skills/ each role sees, on top of the project's own and Mikhail's personal ones;
+# a role's prompt lists only its set, so a worker's skills do not lengthen the planner's
+SKILLS_BY_ROLE: dict[Role, tuple[str, ...]] = {
+    Role.planner: ("okf-knowledge-base",),
+    Role.lead: ("okf-knowledge-base",),
+    Role.worker: ("okf-knowledge-base",),
+    Role.tester: ("okf-knowledge-base",),
+    Role.secretary: (),
+    Role.imitator: (),
+}
+
+
 @dataclass(frozen=True)
 class AgentConfig:
     prompt: Role  # prompts/<prompt>.md; the role the pi extension gates tools by

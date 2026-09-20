@@ -45,17 +45,18 @@ default here: nothing breaks, new files conform), or a pass that adds `type: Doc
 
 ## Steps
 
-- [ ] `npx skills add inkeep/open-knowledge-skills -s okf-knowledge-base -a universal -y` in the
+- [x] `npx skills add inkeep/open-knowledge-skills -s okf-knowledge-base -a universal -y` in the
   factory; `.agents/skills/okf-knowledge-base/` and `skills-lock.json` committed.
-- [ ] `SKILLS_BY_ROLE` in `factory/roles/__init__.py`; a test that every name in it is in the store.
-- [ ] `Workspace.with_tools(path, role)` builds the per-agent `.pi/` (extensions, settings, the role's
+- [x] `SKILLS_BY_ROLE` in `factory/roles/__init__.py`; a test that every name in it is in the store.
+- [x] `Workspace.with_tools(path, role)` builds the per-agent `.pi/` (extensions, settings, the role's
   skills); `agent_dir(name, role)` and the callers in `board.py` pass the role; `worktree` is the
   worker's, `prepare` gives the project itself the tester's. Tests: a worktree carries the worker's
   skills and the extensions; the planner's directory carries the planner's; a second `prepare` drops
   a link whose name left the set. `.venv/bin/python -m pytest -q` green.
-- [ ] One line in `planner.md`, `lead.md`, `worker.md`, `tester.md` naming the skill for `docs/`;
+- [x] One line in `planner.md`, `lead.md`, `worker.md`, `tester.md` naming the skill for `docs/`;
   `~/w/learning/meditate/AGENTS.md` says "OKF, the `okf-knowledge-base` skill" instead of describing
   it (ios-kit's is left: its run is going).
-- [ ] `docs/architecture/overview.md`: where skills live and how a role gets its set;
+- [x] `docs/architecture/overview.md`: where skills live and how a role gets its set;
   `docs/index.md` if a line is needed.
-- [ ] Later, Mikhail's call: the factory's `docs/` and the seeded ones brought to OKF v0.2 frontmatter.
+- Decided 2026-09-20 (Mikhail left it to me): the bundles grow into v0.2 as they are touched; no pass over
+  the existing files. Revisit if the skill makes agents flag old files more than it helps them write new ones.

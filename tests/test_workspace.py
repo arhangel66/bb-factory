@@ -7,6 +7,7 @@ import pytest
 from factory.core import workspace as module
 from factory.core.workspace import Workspace, git
 from factory.kits import Kit
+from factory.roles import SKILLS_BY_ROLE, Role
 
 
 @pytest.fixture
@@ -26,7 +27,7 @@ def work(space: Workspace, key: str, name: str, text: str) -> None:
 def test_prepare_makes_a_repo_with_a_commit(prepared: Workspace) -> None:
     assert git(prepared.workdir, "rev-parse", "HEAD").returncode == 0
     assert ".factory/" in (prepared.workdir / ".git/info/exclude").read_text()
-    assert (prepared.factory / "planner/.pi").resolve() == module.ROOT / ".pi"
+    assert (prepared.factory / "planner/.pi/extensions").resolve() == module.ROOT / ".pi/extensions"
 
 
 def test_untrusted_workdir_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -139,3 +140,31 @@ def test_a_kit_seeds_the_project_once_and_keeps_its_own_skill(tmp_path: Path, mo
     assert "## Kit" in (project / "AGENTS.md").read_text()
     assert git(project, "log", "--format=%s").stdout.split() == ["seeded", "with", "the", "k", "kit", "init"]
     assert git(project, "status", "--porcelain").stdout == ""
+
+
+def test_every_skill_of_every_role_is_in_the_store() -> None:
+    for role, names in SKILLS_BY_ROLE.items():
+        for name in names:
+            assert (module.ROOT / ".agents/skills" / name / "SKILL.md").exists(), f"{role}: {name}"
+
+
+def test_an_agent_directory_carries_its_roles_skills(prepared: Workspace, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(module.SKILLS_BY_ROLE, Role.lead, ("okf-knowledge-base",))
+    monkeypatch.setitem(module.SKILLS_BY_ROLE, Role.secretary, ())
+
+    lead = prepared.agent_dir("lead/FAB-1", Role.lead)
+    secretary = prepared.agent_dir("secretary", Role.secretary)
+
+    assert (lead / ".pi/skills/okf-knowledge-base/SKILL.md").exists()
+    assert (lead / ".pi/settings.json").resolve() == module.ROOT / ".pi/settings.json"
+    assert list((secretary / ".pi/skills").iterdir()) == []
+
+
+def test_a_skill_dropped_from_the_set_is_gone_at_the_next_run(prepared: Workspace, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(module.SKILLS_BY_ROLE, Role.lead, ("okf-knowledge-base",))
+    lead = prepared.agent_dir("lead/FAB-1", Role.lead)
+    monkeypatch.setitem(module.SKILLS_BY_ROLE, Role.lead, ())
+
+    prepared.agent_dir("lead/FAB-1", Role.lead)
+
+    assert not (lead / ".pi/skills/okf-knowledge-base").exists()

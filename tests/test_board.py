@@ -74,7 +74,7 @@ class FakeWorkspace:
     def prepare(self, kit=None) -> None:
         self.kit = kit
 
-    def agent_dir(self, name: str) -> Path:
+    def agent_dir(self, name: str, role: Role) -> Path:
         return self.workdir / name
 
     def worktree(self, key: str) -> Path:
