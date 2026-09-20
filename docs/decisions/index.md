@@ -14,3 +14,4 @@ Plans in the order they were made; checkboxes show what was done.
 - [shipyard-run-lessons.md](shipyard-run-lessons.md) — what the night run shows while it runs: conflicts resolved instead of redone, files cut per area, canceled tasks that say where they went, master checked after every merge
 - [before-the-next-run.md](before-the-next-run.md) — the night's lessons applied: the planner knows its tester, a drag recipe tried by hand, `amend_task` wakes the agent at work, a review the planner can fail, servers die with their threads
 - [ios-kit-run.md](ios-kit-run.md) — the factory prepares its own iOS ground: skills tried and kept, a starter, the build-test-tap loop measured on this Mac, the kit is the deliverable
+- [secretary-voice-and-files](secretary-voice-and-files.md) — the secretary hears Mikhail's voice messages (Beseda's transcribe-cli) and passes files both ways; plan, not built yet
