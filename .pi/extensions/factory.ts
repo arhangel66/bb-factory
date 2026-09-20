@@ -60,7 +60,7 @@ export default function (pi: ExtensionAPI) {
       "plans it as sub-tasks and hands the epic back to you (planner only), type=ask to the secretary, who " +
       "asks Mikhail and brings his answer back as the handoff. " +
       "A task with blocked_by starts only after those tasks are done: create tasks in order and use the keys " +
-      "you got back. A task is never edited once created: to change one, cancel it and create another.",
+      "you got back. To change a task later, `amend_task`; to drop it, `cancel_task`.",
     parameters: Type.Object({
       type: StringEnum(["code", "test", "epic", "ask"]),
       title: Type.String({ description: "The gist of the task in 4-6 words" }),
@@ -84,11 +84,28 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "amend_task",
+    label: "Amend task",
+    description:
+      "Add to a task already on the board: a change of scope, a check to drop, something learned since. " +
+      "A task not started yet reads it with its brief; an agent already at work is woken with it and goes on. " +
+      "Say what changes, not the whole task again. For a task not needed at all, `cancel_task`.",
+    parameters: Type.Object({ key: Type.String(), text: Type.String({ description: "What changes, for the agent doing the task" }) }),
+    async execute(_id, p) {
+      const t = tasks()[p.key];
+      if (!t && !known(p.key)) throw new Error(`${p.key}: no such task in this run`);
+      if (t && t.status !== "todo" && t.status !== "in_progress") return text(`${p.key} is ${t.status} already, nothing to amend`);
+      intend("amend", { key: p.key, text: p.text });
+      return text(`${p.key} amended; whoever does it reads it within a few seconds`);
+    },
+  });
+
+  pi.registerTool({
     name: "cancel_task",
     label: "Cancel task",
     description:
-      "Drop a task that is no longer needed. One already in progress finishes on its own, its work is discarded " +
-      "and its handoff reaches nobody. To change a task, cancel it and create another.",
+      "Drop a task that is not needed at all: one already in progress is stopped at once and its work is " +
+      "discarded. To change a task, `amend_task` instead.",
     parameters: Type.Object({ key: Type.String(), why: Type.String({ description: "One line, for the log" }) }),
     async execute(_id, p) {
       const t = tasks()[p.key];

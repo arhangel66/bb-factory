@@ -51,8 +51,8 @@ LABEL_BY_ROLE = {role: label for label, role in ROLE_BY_LABEL.items()}
 CODING_TOOLS = ("read", "bash", "edit", "write", "grep", "find", "ls")
 TOOLS_BY_ROLE: dict[Role, tuple[str, ...]] = {
     # the planner and the leads read the project's docs/, never its code: `read` and `ls`, the prompt says where
-    Role.planner: ("read", "ls", "create_task", "cancel_task", "set_priority", "board", "show_task", "report"),
-    Role.lead: ("read", "ls", "create_task", "cancel_task", "set_priority", "board", "show_task", "handoff"),
+    Role.planner: ("read", "ls", "create_task", "amend_task", "cancel_task", "set_priority", "board", "show_task", "report"),
+    Role.lead: ("read", "ls", "create_task", "amend_task", "cancel_task", "set_priority", "board", "show_task", "handoff"),
     Role.worker: (*CODING_TOOLS, "handoff"),
     Role.tester: (*CODING_TOOLS, "handoff"),
     Role.secretary: ("contact_human", "tell_planner", "handoff"),

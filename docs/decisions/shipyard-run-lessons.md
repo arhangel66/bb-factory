@@ -89,16 +89,16 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
       [green-handoff.md](green-handoff.md) (a `handoff` that refuses until green) is still open
 - [x] A task canceled while running stops its agent at once: the thread is archived and the worktree
       dropped in the same tick, not at the handoff that nobody reads
-- [ ] The board stops what a task started: a worker's or tester's server dies with its thread (kill the
+- [x] The board stops what a task started: a worker's or tester's server dies with its thread (kill the
       process group of the thread, or the tester is told to stop its server and the worker never to leave
       one)
-- [ ] Cut the project so tasks do not share files: the foundation epic must leave one router module and one
+- [x] (in the planner's and the lead's prompts, 2026-09-20) Cut the project so tasks do not share files: the foundation epic must leave one router module and one
       models module per area, registered by a loop, migrations named by task key or timestamp instead of a
       running number, and the lead names in every task the files it owns.
       Where the goal is written by us, say it in the goal; where it is not, the lead prompt says it
 - [ ] The board says `canceled → redone as FAB-42` in the line, the wake and the timeline; the original
       carries `redone_as`, so a lead sees a dependency moved, not lost
-- [ ] A canceled task's handoff reaches its lead as a note ("FAB-36 was canceled by a conflict; its tester
+- [x] (moot since a cancel stops the agent at once: no handoff comes) A canceled task's handoff reaches its lead as a note ("FAB-36 was canceled by a conflict; its tester
       found: …") instead of being dropped
 - [ ] After every merge the board runs the project's check on master and, when it is red, creates a
       `code` task "master is broken after FAB-x" for the lead of that epic before anything else merges
@@ -106,20 +106,20 @@ stages) is watched while it runs; what it shows goes here as it happens, ideas u
       [green-handoff.md](green-handoff.md)): a worker's DESIGN.md cannot contradict them, a tester reads
       them with its task. The planner's `ask`-free night goal should also say which external assets are
       allowed by name
-- [ ] The planner can write to a lead (`tell_lead(epic, text)`, delivered as a wake with the epic's
+- [x] (as `amend_task`, for any task at work) The planner can write to a lead (`tell_lead(epic, text)`, delivered as a wake with the epic's
       floor), and a cancel by someone other than the owner wakes the owner with the reason
-- [ ] The worker's and the tester's `bb` is limited to what their tools need: no `bb thread output` of
+- [x] (by the prompt only) The worker's and the tester's `bb` is limited to what their tools need: no `bb thread output` of
       other threads; the prompt says the task text is all there is
-- [ ] Drag for the tester: a recipe that works (`bsk evaluate` dispatching pointerdown/move/up on the card
+- [x] Drag for the tester: a recipe that works (`bsk evaluate` dispatching pointerdown/move/up on the card
       and the target column, or a Python script over the app's own API as the fallback that is named as
       such); without it every drag check is "not seen"
-- [ ] The planner knows what its testers can do (the tester's tools and their limits, in the planner prompt
+- [x] The planner knows what its testers can do (the tester's tools and their limits, in the planner prompt
       or the review wake) and is told that a check no tester can run is a planning fault: restate the gate,
       give the check to a worker as a code test, or drop it and say so — never leave it red
-- [ ] The lead and the planner prompts give the exact relative path to the project's `docs/` from where
+- [x] The lead and the planner prompts give the exact relative path to the project's `docs/` from where
       each of them sits; the review wake names the docs pages changed since the last look, so the planner
       opens what moved instead of the index
-- [ ] A review the planner can fail: the wake carries, per open epic, its age and its open/done/canceled
+- [x] A review the planner can fail: the wake carries, per open epic, its age and its open/done/canceled
       task counts, the conflicts and cancellations since the last review, and the time left against the
       goal's deadline; the prompt asks for a verdict per epic, not a sentence for the whole, and lets the
       planner cut stages when the clock says so

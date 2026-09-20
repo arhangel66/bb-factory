@@ -186,3 +186,17 @@ def test_an_intent_of_an_unknown_thread_is_a_stray(tracker: Tracker) -> None:
     assert [i["key"] for i in applied] == ["FAB-1"]
     assert list(tracker.tasks) == ["FAB-1"]
     assert [s["key"] for s in tracker.strays] == ["FAB-2"]
+
+
+def test_an_amendment_is_kept_while_the_task_is_open(tracker: Tracker) -> None:
+    create("FAB-1")
+    write_intent(PLANNER, "amend", key="FAB-1", text="drop the drag check")
+    tracker.fold()
+    tracker.start("FAB-1", WORKER)
+    handoff("FAB-1")
+    write_intent(PLANNER, "amend", key="FAB-1", text="too late")
+
+    applied = tracker.fold()
+
+    assert [a["text"] for a in tracker.tasks["FAB-1"]["amendments"]] == ["drop the drag check"]
+    assert [i["intent"] for i in applied] == ["handoff"]

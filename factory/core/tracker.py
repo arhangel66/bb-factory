@@ -57,7 +57,7 @@ class Tracker:
         return applied
 
     def apply(self, intent: dict) -> bool:
-        # the rules: a task is created once, canceled while open, reprioritized while waiting, handed off once
+        # the rules: a task is created once, canceled or amended while open, reprioritized while waiting, handed off once
         kind, key = intent["intent"], intent["key"]
         task = self.tasks.get(key)
         if kind == "create":
@@ -66,12 +66,16 @@ class Tracker:
             self.tasks[key] = {"key": key, "type": intent["type"], "title": intent["title"],
                                "description": intent["description"], "priority": intent["priority"],
                                "blocked_by": intent.get("blocked_by") or [], "parent": intent.get("parent"),
-                               "status": "todo", "thread": None, "handoffs": [], "created_by": intent["thread"]}
+                               "status": "todo", "thread": None, "handoffs": [], "amendments": [],
+                               "created_by": intent["thread"]}
             return True
         if task is None:
             return False
         if kind == "cancel" and task["status"] in ("todo", "in_progress"):
             task["status"] = "canceled"
+            return True
+        if kind == "amend" and task["status"] in ("todo", "in_progress"):
+            task.setdefault("amendments", []).append({field: intent[field] for field in ("at", "thread", "text")})
             return True
         if kind == "priority" and task["status"] == "todo":
             task["priority"] = intent["priority"]
@@ -85,7 +89,7 @@ class Tracker:
         return False
 
     def start(self, key: str, thread: str) -> None:
-        self.tasks[key].update(status="in_progress", thread=thread)
+        self.tasks[key].update(status="in_progress", thread=thread, started=datetime.now().astimezone().isoformat())
 
     def hand_back(self, key: str) -> None:
         # the work did not merge: the task is the worker's again, its next handoff counts

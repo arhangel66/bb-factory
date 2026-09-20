@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 
 from factory.roles import Model, Thinking
+from factory.tools.processes import kill_processes_of_thread
 
 BB_PROJECT = "proj_x6sd774izb"
 SECTION = "sec_62zku3gn5a"  # sidebar section "Factory · агенты" that holds every thread of a run
@@ -70,6 +71,7 @@ class Threads:
 
     def archive(self, thread: str) -> None:
         bb("thread", "archive", thread)
+        kill_processes_of_thread(thread)  # a server the agent started would outlive it and hold its port
 
     def unarchive(self, thread: str) -> None:
         bb("thread", "unarchive", thread)

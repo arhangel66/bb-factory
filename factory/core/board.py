@@ -3,6 +3,7 @@
 import json
 import subprocess
 import time
+from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.error import URLError
@@ -57,6 +58,7 @@ class Board:
         self.relayed = 0  # messages already delivered; the rest of the file is the postman's queue
         self.waiting: datetime | None = None  # when the answer the secretary is waiting for stops being worth it
         self.last_review = datetime.now()
+        self.since_review: list[str] = []  # what went wrong since: the next review tells the planner
 
     def spawn(self, agent: AgentConfig, role: Role, title: str, text: str, path: Path) -> str:
         thread = self.threads.spawn(title, text, agent.model, agent.thinking, path)
@@ -127,9 +129,15 @@ class Board:
             elif intent["intent"] == "cancel":
                 emit(agent, "task", "canceled", task["key"], type=task["type"], parent=task["parent"])
                 log(f"{task['key']} canceled by the {agent['role']}: {intent['why']!r}")
+                self.since_review.append(f"{task['key']} canceled by the {agent['role']}: {intent['why']!r}")
                 if task["thread"] in self.alive:  # canceled while running: its agent stops now, not at its handoff
                     self.release(task)
                     self.workspace.drop(task["key"])
+            elif intent["intent"] == "amend":
+                emit(agent, "task", "amended", task["key"], intent["text"], type=task["type"], parent=task["parent"])
+                log(f"{task['key']} amended by the {agent['role']}: {intent['text'].splitlines()[0]!r}")
+                if task["thread"] in self.alive:  # at work already: its agent reads the change now, not a waiting task's brief
+                    self.threads.tell(task["thread"], prompt("amended", key=task["key"], who=agent["role"], text=intent["text"]))
             elif intent["intent"] == "handoff":
                 self.bring_home(task, intent)
         for stray in self.tracker.strays:
@@ -143,6 +151,8 @@ class Board:
         key = task["key"]
         agent = self.agent_of(handoff["thread"], task)
         emit(agent, "task", "handed_off", key, handoff["summary"], COLOR[handoff["outcome"]], task["type"], task["parent"])
+        if handoff["outcome"] == "failed":
+            self.since_review.append(f"{key} handed off red: {handoff['summary']!r}")
         if task["status"] == "canceled":
             self.workspace.drop(key)
             self.release(task)
@@ -155,6 +165,7 @@ class Board:
                  type=task["type"], parent=task["parent"])
             self.threads.tell(task["thread"], prompt("conflict", conflict=conflict, main=self.workspace.main_branch()))
             log(f"{key} conflicts with the project → back to its worker {task['thread']}")
+            self.since_review.append(f"{key} came back with a conflict")
             return
         self.release(task)
         if conflict:
@@ -202,8 +213,11 @@ class Board:
         return self.workspace.worktree(key) if role == Role.worker else self.workspace.workdir
 
     def brief(self, task: dict) -> str:
-        # the task with what its reader cannot see otherwise: the epic it is part of, the handoffs it waited on
+        # the task with what its reader cannot see otherwise: what was added to it while it waited, the epic it
+        # is part of, the handoffs it waited on
         context = ""
+        for amendment in task.get("amendments", []):
+            context += f"\n\n## Added at {amendment['at'][11:16]}\n{amendment['text']}"
         if task["parent"]:
             epic = self.tracker.tasks[task["parent"]]
             context += f"\n\n## Epic {epic['key']} «{epic['title']}»\n{epic['description']}"
@@ -278,8 +292,7 @@ class Board:
             return False
         self.dispatch_ready()
         if not reported and datetime.now() - self.last_review > REVIEW:
-            self.wake(self.planner, f"Review: {REVIEW.seconds // 60} minutes since the last look at the whole. "
-                                    f"It is {datetime.now():%H:%M}.", self.tracker.floor(None))
+            self.wake(self.planner, self.review(), self.tracker.floor(None))
             self.last_review = datetime.now()
             log("review → planner")
         for thread in (self.planner, *self.leads.values(), *self.shared.values()):
@@ -287,6 +300,24 @@ class Board:
                 log(f"{thread} keeps failing: bb thread log {thread}")
                 return False
         return True
+
+    def review(self) -> str:
+        # what the planner judges every quarter hour: each open epic with its age and its sub-tasks by status,
+        # and what was canceled, came back or failed since the last look — sub-tasks included, which it never sees otherwise
+        now = datetime.now().astimezone()
+        lines = [f"Review: {REVIEW.seconds // 60} minutes since the last look at the whole. It is {now:%H:%M}."]
+        for epic in self.tracker.tasks.values():
+            if epic["type"] == "epic" and epic["status"] == "in_progress":
+                minutes = int((now - datetime.fromisoformat(epic["started"])).total_seconds() // 60)
+                counts = Counter(t["status"] for t in self.tracker.floor(epic["key"]))
+                lines.append(f"- {epic['key']} «{epic['title']}»: {minutes} minutes in, sub-tasks "
+                             + (", ".join(f"{n} {status}" for status, n in counts.items()) or "none yet"))
+        if self.since_review:
+            lines.append("Since the last look: " + "; ".join(self.since_review))
+        lines.append("A verdict per epic: goes on as it is, gets an amendment, or is canceled. Then what is stuck, "
+                     "what is wasted, and what the clock says against the goal's deadline.")
+        self.since_review = []
+        return "\n".join(lines)
 
     def run(self, goal: str) -> None:
         self.start(goal)

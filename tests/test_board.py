@@ -318,3 +318,48 @@ def test_the_planner_is_asked_to_review_every_quarter_hour(board: Board) -> None
     thread, text = board.threads.told[-1]
     assert thread == PLANNER and text.startswith("Review: 15 minutes")
     assert board.tick() is True and len(board.threads.told) == 1  # not again a tick later
+
+
+def test_an_amendment_wakes_the_agent_at_work_on_the_task(board: Board) -> None:
+    create_and_dispatch(board)
+    write_intent(PLANNER, "amend", key="FAB-1", text="drop the drag check")
+
+    board.fold()
+
+    thread, text = board.threads.told[-1]
+    assert thread == "thr_1" and "drop the drag check" in text and "the planner adds" in text
+    assert [e["action"] for e in events(board) if e["kind"] == "task"][-1] == "amended"
+
+
+def test_an_amendment_of_a_waiting_task_is_in_its_brief(board: Board) -> None:
+    write_intent(PLANNER, "create", key="FAB-1", type="code", title="do it", description="## Motivation\nbecause",
+                 priority="high", blocked_by=[], parent=None)
+    write_intent(PLANNER, "amend", key="FAB-1", text="drop the drag check")
+    board.fold()
+
+    board.dispatch_ready()
+
+    assert board.threads.told == []
+    assert "## Added at" in board.threads.prompts[-1] and "drop the drag check" in board.threads.prompts[-1]
+
+
+def test_the_review_names_every_open_epic_with_its_sub_tasks_and_what_went_wrong(board: Board) -> None:
+    write_intent(PLANNER, "create", key="FAB-1", type="epic", title="build the board", description="## Motivation\nbecause",
+                 priority="high", blocked_by=[], parent=None)
+    board.fold()
+    board.dispatch_ready()  # the lead is thr_1
+    write_intent("thr_1", "create", key="FAB-2", type="code", title="cards", description="", priority="high",
+                 blocked_by=[], parent="FAB-1")
+    write_intent("thr_1", "create", key="FAB-3", type="code", title="columns", description="", priority="high",
+                 blocked_by=[], parent="FAB-1")
+    write_intent("thr_1", "cancel", key="FAB-3", why="columns are cards")
+    board.fold()
+    board.last_review = board.last_review - board_module.REVIEW
+
+    board.tick()
+
+    thread, text = board.threads.told[-1]
+    assert thread == PLANNER and text.startswith("Review: 15 minutes")
+    assert "- FAB-1 «build the board»: 0 minutes in, sub-tasks 1 in_progress, 1 canceled" in text  # the tick dispatched FAB-2
+    assert "FAB-3 canceled by the lead: 'columns are cards'" in text
+    assert "verdict per epic" in text

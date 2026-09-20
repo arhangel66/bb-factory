@@ -378,12 +378,14 @@ class Component extends DCLogic {
         if (e.action === "handed_off") { task.state = "done"; task.status = e.status; task.note = e.text; task.endAt = e._t; }
         if (e.action === "canceled") { task.state = "done"; task.status = "grey"; task.note = e.text || "отменена"; task.endAt = e._t; }
         if (e.action === "returned") { task.state = "active"; task.status = null; task.note = e.text; task.endAt = null; task.runs++; }
+        if (e.action === "amended") task.note = "дополнена: " + (e.text || "");
         task.at = e._t;
         const a = agents.get(thread);
         if (a) {
           if (e.action === "started") { a.task = e.key; a.last = "взял " + e.key; if (a.tasks.indexOf(e.key) < 0) a.tasks.push(e.key); }
           if (e.action === "handed_off") { a.task = null; a.last = "handoff " + e.key + (e.text ? ": " + e.text : ""); a.status = e.status; if (!a.explicit) a.endedAt = e._t; }
           if (e.action === "created") a.last = "создал " + e.key + ": " + (e.text || "");
+          if (e.action === "amended") a.last = "дополнил " + e.key;
           if (e.action === "returned") { a.task = e.key; a.last = "конфликт " + e.key + ", правит"; a.status = null; a.endedAt = null; }
         }
       } else if (e.kind === "message") {
