@@ -20,6 +20,7 @@ from factory.tools.telegram import Telegram
 
 TICK = timedelta(seconds=10)
 REVIEW = timedelta(minutes=15)  # how often the planner is asked to look at the whole
+STALL = timedelta(minutes=5)  # how long a thread may be stopped before the board starts it again
 OUTAGE = timedelta(minutes=5)  # how long the network or bb may fail before the run gives up
 TRANSIENT = (URLError, OSError, RuntimeError, subprocess.TimeoutExpired)  # what a tick may hit and the next may not
 COLOR = {"ok": "green", "warning": "yellow", "failed": "red"}
@@ -54,6 +55,7 @@ class Board:
         self.project = ""  # the bb project of the workdir: where the run's threads are made
         self.agents: dict[str, dict] = {}  # thread -> who runs in it, as the timeline names them
         self.alive: set[str] = set()  # threads spawned and not archived yet
+        self.started: dict[str, datetime] = {}  # thread -> when the board last set it to work: a stall is counted from there
         self.costs: dict[str, dict] = {}  # thread -> what it cost, complete once it is archived; written to COSTS
         self.leads: dict[str, str] = {}  # epic key -> its lead's thread
         self.shared: dict[AgentConfig, str] = {}  # shared agent -> its thread
@@ -71,6 +73,7 @@ class Board:
         # a thread the board answers for from now on: named for the timeline, kept alive, its cost counted
         self.agents[thread] = agent_of_thread(role, agent.model, thread, imitator=agent.prompt == Role.imitator)
         self.alive.add(thread)
+        self.started[thread] = datetime.now()
         self.costs[thread] = {"role": role, "model": agent.model, "thinking": agent.thinking,
                               "started": datetime.now().astimezone().isoformat()}
         emit(self.agents[thread], "agent", "started", thread)
@@ -120,8 +123,14 @@ class Board:
         log(f"goal «{goal}» → planner {self.planner}, secretary {self.secretary}, run {started}, "
             f"results in {self.workspace.workdir}")
 
+    def tell(self, thread: str, text: str, mode: str = "queue") -> None:
+        # every word the board sends an agent: the thread is at work from now on, and the watch below counts
+        # the stall that makes it stopped from here
+        self.started[thread] = datetime.now()
+        self.threads.tell(thread, text, mode)
+
     def wake(self, thread: str, event: str, floor: list[dict]) -> None:
-        self.threads.tell(thread, prompt("wake", event=event, board=board_lines(floor)))
+        self.tell(thread, prompt("wake", event=event, board=board_lines(floor)))
 
     def fold(self) -> None:
         # the agents' intents since the last tick: a create or a cancel is noted, a handoff brings the work home;
@@ -143,8 +152,8 @@ class Board:
                 emit(agent, "task", "amended", task["key"], intent["text"], type=task["type"], parent=task["parent"])
                 log(f"{task['key']} amended by the {agent['role']}: {intent['text'].splitlines()[0]!r}")
                 if task["thread"] in self.alive:  # at work already: its agent reads the change now, not a waiting task's brief
-                    self.threads.tell(task["thread"], prompt("amended", key=task["key"], who=agent["role"], text=intent["text"]),
-                                      mode="steer")  # in the middle of its work, not after: the change is about that work
+                    self.tell(task["thread"], prompt("amended", key=task["key"], who=agent["role"], text=intent["text"]),
+                              mode="steer")  # in the middle of its work, not after: the change is about that work
             elif intent["intent"] == "handoff":
                 self.bring_home(task, intent)
         for stray in self.tracker.strays:
@@ -170,7 +179,7 @@ class Board:
             self.tracker.hand_back(key)
             emit(agent, "task", "returned", key, "not merged: the worker resolves the conflict",
                  type=task["type"], parent=task["parent"])
-            self.threads.tell(task["thread"], prompt("conflict", conflict=conflict, main=self.workspace.main_branch()))
+            self.tell(task["thread"], prompt("conflict", conflict=conflict, main=self.workspace.main_branch()))
             log(f"{key} conflicts with the project → back to its worker {task['thread']}")
             self.since_review.append(f"{key} came back with a conflict")
             return
@@ -244,7 +253,7 @@ class Board:
                                 prompt(agent.prompt) + "\n\n" + brief, self.dir_for(agent, role, task["key"]))
         elif agent in self.shared:
             thread = self.shared[agent]
-            self.threads.tell(thread, brief)
+            self.tell(thread, brief)
         else:  # spawned with its first task: left idle, it invents work for itself
             thread = self.shared[agent] = self.spawn(agent, role, f"{agent.prompt} {agent.model}",
                                                      prompt(agent.prompt) + "\n\n" + brief,
@@ -254,6 +263,46 @@ class Board:
         if agent is self.config[Role.lead]:
             self.leads[task["key"]] = thread
         log(f"task {task['key']} «{task['title']}» → {agent.prompt} {thread}")
+
+    def restart(self, thread: str, status: str, nudge: str) -> bool:
+        # a thread that stopped is given a stall to come back by itself, then started again, a few times in all;
+        # False when the tries are spent and the board gives up on it
+        if datetime.now() - self.started[thread] < STALL:
+            return True
+        self.started[thread] = datetime.now()
+        return self.threads.revive(thread, status, nudge)
+
+    def watch(self, statuses: dict[str, str]) -> None:
+        # the threads of the tasks in progress: a worker or a tester whose turn failed (the provider overloaded,
+        # the network gone) or ended with the work unfinished stops silently, and the board would wait for its
+        # handoff forever. It is started again; the one that does not come back has its task redone by another
+        for task in list(self.tracker.tasks.values()):
+            thread = task["thread"]
+            if task["status"] != "in_progress" or task["type"] == "epic" or thread not in self.alive \
+                    or thread in self.shared.values():  # an epic's lead and the secretary wait by design
+                continue
+            status = statuses.get(thread, "")
+            if status == "active" or self.restart(thread, status, prompt("stalled", key=task["key"])):
+                continue
+            self.give_up(task, status)
+
+    def give_up(self, task: dict, status: str) -> None:
+        # the agent does not answer: its thread goes, its worktree with it, and the task is on the board again
+        # for whoever created it — the planner hears it at the next review
+        key, thread = task["key"], task["thread"]
+        role = self.agents[thread]["role"]
+        agent = self.agent_of(thread, task)
+        self.release(task)
+        self.workspace.drop(key)
+        copy = self.tracker.copy(key, f"The {role} that had this task stopped answering ({status or 'gone'}) and the "
+                                      f"board gave up on it; what it did is not in the project. Do the task again, "
+                                      f"in a fresh worktree of the current code.")
+        emit(agent, "task", "canceled", key, f"its {role} stopped answering, redone as {copy['key']}",
+             type=task["type"], parent=task["parent"])
+        emit(self.agent_of(copy["created_by"], copy), "task", "created", copy["key"], copy["title"],
+             type=copy["type"], parent=copy["parent"])
+        self.since_review.append(f"{key} was redone as {copy['key']}: its {role} stopped answering")
+        log(f"{key}: its {role} {thread} stopped answering ({status or 'gone'}) → {copy['key']}")
 
     def deliver(self) -> bool:
         # the board is the postman: Mikhail's Telegram on one side, the agents' threads on the other
@@ -291,6 +340,12 @@ class Board:
         # one pass; False when Mikhail has the report or an agent is dead
         self.fold()
         delivered = self.deliver()
+        statuses = self.threads.statuses()
+        for thread in (self.planner, *self.leads.values(), *self.shared.values()):
+            if statuses.get(thread) == "error" and not self.restart(thread, "error", ""):
+                log(f"{thread} keeps failing: bb thread log {thread}")
+                return False
+        self.watch(statuses)
         # the run ends when the secretary is through with Mikhail: the report passed on, no answer awaited;
         # a lingering board stays for what Mikhail writes next, and stops nudging the planner
         reported = self.reported()
@@ -303,10 +358,6 @@ class Board:
             self.wake(self.planner, self.review(), self.tracker.floor(None))
             self.last_review = datetime.now()
             log("review → planner")
-        for thread in (self.planner, *self.leads.values(), *self.shared.values()):
-            if not self.threads.alive(thread):
-                log(f"{thread} keeps failing: bb thread log {thread}")
-                return False
         return True
 
     def review(self) -> str:

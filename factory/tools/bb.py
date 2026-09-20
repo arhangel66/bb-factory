@@ -66,6 +66,23 @@ class Threads:
     def status(self, thread: str) -> str:
         return self.show(thread)["status"]
 
+    def statuses(self) -> dict[str, str]:
+        # every thread of the factory's section in one call: "active", "idle" or "error", a call per tick
+        # instead of one per thread
+        return {t["id"]: t["status"] for t in bb("thread", "list", "--section", SECTION)}
+
+    def revive(self, thread: str, status: str, nudge: str) -> bool:
+        # a thread that stopped is started again: a failed turn is retried, a turn that ended with the work
+        # unfinished is told so. False when the thread has had its tries and the board gives up on it
+        self.retries[thread] = self.retries.get(thread, 0) + 1
+        if self.retries[thread] > MAX_RETRIES:
+            return False
+        if status == "error":
+            bb("thread", "retry", thread)
+        else:
+            self.tell(thread, nudge)
+        return True
+
     def alive(self, thread: str) -> bool:
         # retried on "error" (usually "fetch failed" from the provider) until the budget runs out
         if self.status(thread) != "error":

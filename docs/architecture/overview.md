@@ -19,7 +19,12 @@ then ticks every 10 seconds:
 4. **review** — every 15 minutes the planner gets every open epic with its age and its sub-tasks by status,
    plus what was canceled, came back with a conflict or was handed off red since the last look, and is
    asked for a verdict per epic
-5. **liveness** — a thread in `error` is retried a few times, then the run stops
+5. **watch** — one `bb thread list` gives the status of every thread. A task's thread that is neither
+   working nor handed off — its turn failed on the provider, or ended with the task still open — is given
+   five minutes, then started again (`bb thread retry` or the `stalled` prompt), three tries in all; then
+   the board gives up on it, archives it, drops its worktree and the task is redone by a copy, and the
+   planner hears it at its next review. A planner, a lead or the secretary that will not come back ends
+   the run instead
 
 A thread the board archives takes what it started with it: every process whose environment carries its
 `BB_THREAD_ID` is killed (`factory/tools/processes.py`), so no server outlives its agent on its port.

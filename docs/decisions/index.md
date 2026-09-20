@@ -17,4 +17,5 @@ Plans in the order they were made; checkboxes show what was done.
 - [secretary-voice-and-files](secretary-voice-and-files.md) — the secretary hears Mikhail's voice messages (Beseda's transcribe-cli) and passes files both ways; plan, not built yet
 - [skills-by-role](skills-by-role.md) — skills attached to the agents in sets per role, delivered through each agent's .pi/skills; the first is okf-knowledge-base
 - [kits](kits.md) — a preset named in the run (kit=IOS): the project is seeded with the kit's skills and a Kit section in AGENTS.md, the planner gets the kit's brief before the goal; plan
+- [stopped-agents](stopped-agents.md) — an agent whose turn failed or ended without a handoff is noticed, started again, and its task redone when it does not come back
 - [secretary-planner-link](secretary-planner-link.md) — the secretary asks the planner how the work goes and comes back to Mikhail with the answer: `tell_secretary`, the report told apart by its status

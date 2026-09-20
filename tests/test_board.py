@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -26,6 +27,8 @@ class FakeThreads:
         self.unarchived: list[str] = []
         self.dead: set[str] = set()
         self.modes: list[str] = []
+        self.state: dict[str, str] = {}  # thread -> what bb says it is doing
+        self.revived: list[tuple[str, str]] = []
 
     def project_for(self, workdir: Path) -> str:
         return "proj_fake"
@@ -50,6 +53,16 @@ class FakeThreads:
 
     def alive(self, thread: str) -> bool:
         return thread not in self.dead
+
+    def statuses(self) -> dict[str, str]:
+        return self.state
+
+    def revive(self, thread: str, status: str, nudge: str) -> bool:
+        self.revived.append((thread, status))
+        if thread in self.dead:
+            return False
+        self.tell(thread, nudge)
+        return True
 
     def usage(self, thread: str) -> dict:
         return {"turns": 1, "items": {"toolCall": 2}, "tokens": {"total": 10}}
@@ -197,6 +210,53 @@ def test_a_conflict_of_a_dead_worker_makes_a_copy_for_the_same_creator(board: Bo
     assert board.threads.told == []  # the planner hears of the copy when it is done, not of the conflict
     canceled = [e for e in events(board) if e["kind"] == "task" and e["action"] == "canceled"]
     assert [(e["key"], e["text"]) for e in canceled] == [("FAB-1", "not merged, redone as FAB-2")]
+
+
+def test_a_worker_at_work_is_left_alone(board: Board) -> None:
+    create_and_dispatch(board)
+    board.started["thr_1"] = datetime.now() - 2 * board_module.STALL
+    board.threads.state["thr_1"] = "active"
+
+    board.watch(board.threads.statuses())
+
+    assert board.threads.revived == [] and board.threads.told == []
+
+
+def test_a_worker_that_stopped_is_told_to_go_on_with_its_task(board: Board) -> None:
+    create_and_dispatch(board)
+    board.started["thr_1"] = datetime.now() - 2 * board_module.STALL
+    board.threads.state["thr_1"] = "idle"
+
+    board.watch(board.threads.statuses())
+
+    assert board.threads.revived == [("thr_1", "idle")]
+    assert "FAB-1 is still open" in board.threads.told[0][1]
+    assert board.tracker.tasks["FAB-1"]["status"] == "in_progress"  # the task is still its own
+
+
+def test_a_worker_that_does_not_come_back_has_its_task_redone_by_another(board: Board) -> None:
+    create_and_dispatch(board)
+    board.started["thr_1"] = datetime.now() - 2 * board_module.STALL
+    board.threads.state["thr_1"] = "error"
+    board.threads.dead.add("thr_1")  # the tries are spent
+
+    board.watch(board.threads.statuses())
+
+    copy = board.tracker.tasks["FAB-2"]
+    assert board.tracker.tasks["FAB-1"]["status"] == "canceled"
+    assert copy["status"] == "todo" and copy["created_by"] == PLANNER
+    assert "stopped answering" in copy["description"]
+    assert board.threads.archived == ["thr_1"] and board.workspace.dropped == ["FAB-1"]
+    assert board.since_review == ["FAB-1 was redone as FAB-2: its worker stopped answering"]
+
+
+def test_a_stopped_worker_has_a_stall_before_the_board_touches_it(board: Board) -> None:
+    create_and_dispatch(board)
+    board.threads.state["thr_1"] = "idle"
+
+    board.watch(board.threads.statuses())
+
+    assert board.threads.revived == []  # it was set to work a moment ago; a turn takes time to start
 
 
 def test_the_timeline_follows_the_task(board: Board) -> None:
