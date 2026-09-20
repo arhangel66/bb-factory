@@ -48,8 +48,27 @@ same task was on the board as FAB-38 within the tick. The quarter-hour review ca
 the whole gap — it is what kept the run going while the epic heard nothing. And the run itself answered
 Mikhail's messages, screenshots and corrections throughout.
 
+## What the run taught the prompts
+
+Three things the run worked out by itself, at its own cost, that the prompts should have said first.
+
+- **Evidence lives in the checkout.** FAB-23 wrote its screenshots under `.factory/work/FAB-23/` and
+  handed off; the board dropped the worktree and the paths reached Mikhail dead. The planner saw it and
+  raised FAB-24 to move them — an hour after the board had already died of the same paths.
+- **A final test blocked on everything never runs.** FAB-7, FAB-11, FAB-22 and FAB-31 were all canceled,
+  each overtaken before it started. The planner at 17:12: "waiting for it is no longer possible". The
+  rule that produced them is in `planner.md` — one `test` task for the whole, depending on all of them.
+- **He is not slow to answer.** The goal said Mikhail was reachable but slow, so the secretary sized its
+  waits in hours. He wrote eleven times in six hours, and most of the second half of the run came from
+  what he said. How often he answers is something a run finds out.
+
 ## Plan
 
+- [x] `worker.md`: a file a person will open is committed into the project, and the path in the handoff
+      is the project's own, not the worktree's
+- [x] `planner.md`: the test is over what is whole when it becomes whole, not one gate at the end; a look
+      is every new picture; a path passed to the secretary is one in the checkout
+- [x] `secretary.md`: how often Mikhail answers is found out, not assumed from the goal
 - [x] `resume()` unarchives every thread it takes back, not only the planner and the secretary: the
       board that went archived them all. Test: a resumed board unarchives the worker and the lead too
 - [x] `fold()` acts on one intent at a time: a failure is a log line and a note for the planner's next

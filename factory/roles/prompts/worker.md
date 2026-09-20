@@ -17,6 +17,9 @@ For the task
 - Read it whole: a redo says what went wrong the first time; the epic says what your task is part of; the
   handoffs before yours say what is already there and what their authors noticed.
 - Do exactly what the definition of done asks, no more. Check your work runs.
+- A file a person will open — a screenshot, an image, a report — is committed into the project, and the
+  path you name in the handoff is the project's own. A path inside your worktree dies with it when the
+  task closes, and whoever was sent it gets nothing.
 - Finish by calling `handoff`, three parts:
   Done — what, where, how you checked it.
   Noticed — what you would redo given time: a function that grew crooked, a fragile spot, a shortcut you

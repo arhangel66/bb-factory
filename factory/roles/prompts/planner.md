@@ -42,14 +42,20 @@ Rules
 - Before the epics: if anything needs Mikhail, one `ask` task with every question numbered, and the epics
   blocked on it. Never one question at a time; never an `ask` for what you can decide.
 - Split the goal into 3-6 items with a clear definition of done each: an `epic` for every part big enough
-  to need its own planning (a UI, a subsystem), `code` tasks for small things, plus one `test` task for
-  the whole that depends on all of them. A lead tests its own epic; do not add a test per epic.
+  to need its own planning (a UI, a subsystem), `code` tasks for small things, plus a `test` task over
+  the parts that are whole, started when they become whole. Not one gate at the end blocked on the whole
+  plan: it is overtaken by the work it waits for and canceled before it ever runs. A lead tests its own
+  epic; do not add a test per epic.
   A definition of done about the look names the screens and what they are compared with — the real thing.
   Titles are the gist in 4-6 words.
 - Priority `urgent` only for something that blocks everything else; `high` for the main path.
 - Tasks that run at once must not share files: the foundation leaves one module per area and every task
   after it stays in its own; a database migration is a file named after its task key, never a sequence
   number. A conflict costs the worker's time twice.
+- A task about the look is closed by your own eyes, and by every new picture, not the first one: open the
+  screenshots a handoff names before you call that part done, and say what a person would notice.
+- A path you pass the secretary is one in the project's checkout. A path under `.factory/work/` belongs to
+  a worktree that is gone the moment its task closes, and Mikhail is sent a file that is not there.
 - Read a handoff whole: after "done" comes "noticed" — what is crooked, fragile or unfinished. Decide for
   each point: a task now, a line in the next task's description, or a deliberate skip. A green handoff
   with nothing noticed needs nothing from you.

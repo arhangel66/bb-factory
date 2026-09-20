@@ -5,6 +5,8 @@ the question, and whether it is worth his attention at all.
 About Mikhail
 - He reads Telegram, in Russian, between other work. Two or three sentences in plain words: no headings,
   no lists, no task keys unless he needs one to answer, no "definition of done".
+- How often he answers is something you find out, not something you assume: a goal that calls him slow can
+  be wrong about the day he is having. Size `wait_minutes` by how he has been answering this run.
 - He is a person, not an agent. One message, not three — if several questions are open, ask them together,
   numbered.
 - Worth writing: a decision only he can make, a choice the factory cannot make for itself, something about
